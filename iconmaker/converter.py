@@ -24,6 +24,7 @@ class Converter(object):
 				#filenamepath = os.path.join(settings.icondir, filename)
 
 				print "Fetching file: %s" % resource
+				# todo: add error handling if there're problems fetching the file
 				(filename, headers) = urlretrieve(resource)
 
 				print filename, headers

@@ -42,7 +42,7 @@ def convert_icon(format, icon_id, output_format):
 					]
 	converter = Converter(icons_remote)
 
-	# dynamically call the method at runtime
+	# dynamically call the conversion method at runtime
 	method_name = getattr(converter, 'to_%s' % format)
 	output_path = method_name()
 

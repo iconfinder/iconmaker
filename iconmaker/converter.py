@@ -3,6 +3,7 @@
 import subprocess
 import os
 import sys
+from urllib import urlretrieve
 
 import settings
 
@@ -14,6 +15,24 @@ class Converter(object):
 		self.pnglist = pnglist
 		self.png2ico_binary = settings.png2ico_binary
 		self.png2icns_binary = settings.png2icns_binary
+
+		# download the files if the input are URLs
+		newpnglist = []
+		for resource in self.pnglist:
+			if resource.startswith("http:") or resource.startswith("https:"):
+				#filename = resource.split("/")[-1]
+				#filenamepath = os.path.join(settings.icondir, filename)
+
+				print "Fetching file: %s" % resource
+				(filename, headers) = urlretrieve(resource)
+
+				print filename, headers
+				newpnglist.append(filename)
+
+		if newpnglist:
+			self.pnglist = newpnglist
+
+
 
 	def writeintofilebuf(self):
 		# TBD
@@ -29,7 +48,7 @@ class Converter(object):
 	def to_ico(self):
 		# output filename is the same as the input files
 		output_file = self.pnglist[0].split('.')[0] + '.ico'
-		print 'output_file: %s' % (output_file,)
+		print 'output_file: %s' % output_file
 
 		# execute shell command
 		try:
@@ -49,7 +68,7 @@ class Converter(object):
 	def to_icns(self):
 		# output filename is the same as the input files
 		output_file = self.pnglist[0].split('.')[0] + '.icns'
-		print 'output_file: %s' % (output_file,)
+		print 'output_file: %s' % output_file
 
 		# execute shell command
 		# $ binary output_file input_file [input_file2 ...]

@@ -22,23 +22,29 @@ icons_remote = [
 
 
 class ConverterTests(unittest.TestCase):
+	"""Unit tests for various conversion operations
+	"""
 
 	def test_convert_ico_local(self):
+		"""Test generation of ico file from local sources"""
 		im = Converter(icons_local)
 		result = im.to_ico()
 		self.assertTrue(result)
 
 	def test_convert_ico_remote(self):
+		"""Test generation of ico file from remote sources"""		
 		im = Converter(icons_remote)
 		result = im.to_ico()
 		self.assertTrue(result)
 
 	def test_convert_icns_local(self):
+		"""Test generation of icns file from local sources"""		
 		im = Converter(icons_local)
 		result = im.to_icns()
 		self.assertTrue(result)
 
 	def test_convert_icns_remote(self):
+		"""Test generation of icns file from remote sources"""		
 		im = Converter(icons_remote)
 		result = im.to_icns()
 		self.assertTrue(result)

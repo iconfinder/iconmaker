@@ -7,12 +7,16 @@ from urllib import urlretrieve
 #import requests
 import utils
 
-"""Convert a set of PNG icons to either ICO or ICNS format
-input: a list of paths of PNG files
-output: path to the final ICO or ICNS file"""
 class Converter(object):
+	"""Convert a set of PNG icons to either ICO or ICNS format
+	"""
+
 	# initializer
 	def __init__(self, pnglist):
+		"""initializer
+
+		:param pnglist: list of png files to convert (either local paths or URLs)
+		"""
 		self.pnglist = pnglist
 		self.png2ico_binary = 'png2ico'
 		self.png2icns_binary = 'png2icns'
@@ -38,8 +42,10 @@ class Converter(object):
 			self.pnglist = newpnglist
 
 
-	"""Convert a list of png files to an ico file"""
 	def to_ico(self):
+		"""Convert a list of png files to an ico file
+		:returns local path to the generated ico or None if it failed
+		"""
 		if not self.pnglist:
 			return None
 
@@ -60,8 +66,10 @@ class Converter(object):
 		return output_file
 
 
-	"""Convert a list of png files to an icns file"""
 	def to_icns(self):
+		"""Convert a list of png files to an icns file
+		:returns local path to the generated icns or None if it failed
+		"""
 		if not self.pnglist:
 			return None
 

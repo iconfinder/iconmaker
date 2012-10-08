@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 
-"""Determine if a specific program exists"""
 def which(program):
+    """Determine if a specific executable exists
+
+    :param program: name of the executable to check for
+    :returns full path to the executable or None if not found
+    """
+
     import os
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)

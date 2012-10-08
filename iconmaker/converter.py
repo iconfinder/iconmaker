@@ -31,7 +31,7 @@ class Converter(object):
 				# todo: add error handling if there're problems fetching the file
 				(filename, headers) = urlretrieve(resource)
 
-				print filename, headers
+				print "Downloaded: %s" % filename
 				newpnglist.append(filename)
 
 		if newpnglist:

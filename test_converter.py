@@ -17,6 +17,7 @@ if __name__=='__main__':
 					]
 
 	# create the converter object with png icons
+	# im = Converter(icons_local)	
 	im = Converter(icons_remote)
 
 	# convert to ICNS

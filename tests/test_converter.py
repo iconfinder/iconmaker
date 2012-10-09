@@ -29,6 +29,16 @@ class ConverterTests(unittest.TestCase):
 	"""Unit tests for various conversion operations
 	"""
 
+	def test_convert_empty_pnglist(self):
+		"""Test generation given an empty pnglist"""
+		converter = Converter()
+		self.assertFalse(converter.convert('ico', []))
+
+	def test_convert_wrong_format(self):
+		"""Test generation given a wrong icon format"""
+		converter = Converter()
+		self.assertRaises(KeyError, converter.convert('foo', icons_local))
+
 	def test_convert_ico_local(self):
 		"""Test generation of ico file from local sources"""
 		converter = Converter()

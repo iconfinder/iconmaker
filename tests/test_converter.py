@@ -40,42 +40,50 @@ class ConverterTests(unittest.TestCase):
 	"""Unit tests for various conversion operations
 	"""
 	def test_convert_bad_local_pnglist(self):
-		"""Test generation given a bad local pnglist"""
+		"""Test generation given a bad local pnglist
+		"""
 		converter = Converter()
 		self.assertFalse(converter.convert('ico', icons_local_bad))	
 
 	def test_convert_bad_remote_pnglist(self):
-		"""Test generation given a bad remote pnglist"""
+		"""Test generation given a bad remote pnglist
+		"""
 		converter = Converter()
 		self.assertFalse(converter.convert('ico', icons_remote_bad))
 
 	def test_convert_empty_pnglist(self):
-		"""Test generation given an empty pnglist"""
+		"""Test generation given an empty pnglist
+		"""
 		converter = Converter()
 		self.assertFalse(converter.convert('ico', []))
 
 	def test_convert_wrong_format(self):
-		"""Test generation given a wrong icon format"""
+		"""Test generation given a wrong icon format
+		"""
 		converter = Converter()
 		self.assertRaises(KeyError, converter.convert('foo', icons_local))
 
 	def test_convert_ico_local(self):
-		"""Test generation of ico file from local sources"""
+		"""Test generation of ico file from local sources
+		"""
 		converter = Converter()
 		self.assertTrue(converter.convert('ico', icons_local))
 
 	def test_convert_ico_remote(self):
-		"""Test generation of ico file from remote sources"""		
+		"""Test generation of ico file from remote sources
+		"""		
 		converter = Converter()
 		self.assertTrue(converter.convert('ico', icons_remote))
 
 	def test_convert_icns_local(self):
-		"""Test generation of icns file from local sources"""		
+		"""Test generation of icns file from local sources
+		"""		
 		converter = Converter()
 		self.assertTrue(converter.convert('icns', icons_local))
 
 	def test_convert_icns_remote(self):
-		"""Test generation of icns file from remote sources"""		
+		"""Test generation of icns file from remote sources
+		"""		
 		converter = Converter()
 		self.assertTrue(converter.convert('icns', icons_remote))
 

@@ -69,10 +69,14 @@ class Converter(object):
 		:returns local path to the generated ico or None if it failed		
 		"""
 
+		logging.debug("\nconvert(): %s %s" % (target_format, png_list))
+
 		try:
 			conversion_binary = self.convert_binaries[target_format.upper()]
 		except KeyError, e:
 			logging.debug("invalid target format: %" % e)
+
+		logging.debug("conversion binary: %s" % conversion_binary)
 
 		new_pnglist = []
 		for resource in png_list:

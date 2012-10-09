@@ -58,7 +58,7 @@ class Converter(object):
 			if not self.png2icns:
 				raise Exception("Error: png2icns binary not found")
 
-		self.convert_binaries = {'ico':self.png2ico, 'icns':self.png2icns}
+		self.convert_binaries = {'ICO':self.png2ico, 'ICNS':self.png2icns}
 
 
 	def convert(self, target_format, png_list):
@@ -70,7 +70,7 @@ class Converter(object):
 		"""
 
 		try:
-			conversion_binary = self.convert_binaries[target_format]
+			conversion_binary = self.convert_binaries[target_format.upper()]
 		except KeyError, e:
 			logging.debug("invalid target format: %" % e)
 

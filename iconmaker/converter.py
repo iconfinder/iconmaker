@@ -66,15 +66,17 @@ class Converter(object):
 		:param target_format: ico or icns
 		:param pnglist: list of png files to convert (either local paths or URLs)
 
-		:returns local path to the generated ico or None if it failed		
+		:returns local path to the generated ico or None if an error occured		
 		"""
 
 		logging.debug("\nconvert(): %s %s" % (target_format, png_list))
 
+		conversion_binary = None
 		try:
 			conversion_binary = self.convert_binaries[target_format.upper()]
 		except KeyError, e:
-			logging.debug("invalid target format: %" % e)
+			logging.debug("invalid target format: %s" % e)
+			return None
 
 		logging.debug("conversion binary: %s" % conversion_binary)
 
@@ -93,6 +95,7 @@ class Converter(object):
 		png_list = new_pnglist if new_pnglist else png_list
 
 		if not png_list:
+			logging.debug("Empty png list")			
 			return None
 
 		output_file = tempfile.NamedTemporaryFile(prefix='output_icon_', suffix='.ico', dir='/tmp', delete=False)

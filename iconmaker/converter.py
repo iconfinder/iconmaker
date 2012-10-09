@@ -6,7 +6,9 @@ import sys
 #from urllib import urlretrieve
 import utils
 import tempfile
+import logging
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class Converter(object):
 	"""Convert a set of PNG icons to either ICO or ICNS format
@@ -24,15 +26,15 @@ class Converter(object):
 		from PIL import Image
 		try:
 		    im = Image.open(StringIO.StringIO(response.content))
-		    print 'format: %s' % im.format
+		    logging.debug("format: %s" % im.format)
 		    im.verify()
 		except Exception, e:
-			print 'Exception, ', e
+			logging.debug("Exception: %" % e)
 			saved_filename = ''
 
 		saved_file = tempfile.NamedTemporaryFile(prefix='downloaded_png_', suffix='.png', dir='/tmp', delete=False)
 		saved_filename = saved_file.name
-		print 'saving image to: %s' % saved_filename
+		logging.debug("saving image to: %s" % saved_filename)
 
 		im.save(saved_filename)
 		return saved_filename
@@ -70,18 +72,18 @@ class Converter(object):
 		try:
 			conversion_binary = self.convert_binaries[target_format]
 		except KeyError, e:
-			print 'invalid target format'
+			logging.debug("invalid target format: %" % e)
 
 		new_pnglist = []
 		for resource in png_list:
 			if resource.startswith("http:") or resource.startswith("https:"):
 				saved_filename = ''
-				print "Fetching PNG: %s" % resource
+				logging.debug("Fetching PNG: %s" % resource)
 
 				saved_filename = self._fetch_png(resource)
 
 				if saved_filename:
-					print "Downloaded: %s" % saved_filename
+					logging.debug("Downloaded: %s" % saved_filename)
 					new_pnglist.append(saved_filename)
 
 		png_list = new_pnglist if new_pnglist else png_list
@@ -91,9 +93,7 @@ class Converter(object):
 
 		output_file = tempfile.NamedTemporaryFile(prefix='output_icon_', suffix='.ico', dir='/tmp', delete=False)
 		output_filename = output_file.name
-		print 'output_filename: %s' % output_filename
-
-		print png_list
+		logging.debug("output_filename: %s" % output_filename)
 
 		# execute shell command
 		try:
@@ -102,7 +102,7 @@ class Converter(object):
 			args.insert(0, conversion_binary)
 			retcode = subprocess.call(args)
 		except OSError, e:
-		    print "Execution failed:", e
+		    logging.debug("Execution failed: %" % e)
 		    return None
 
 		return output_filename

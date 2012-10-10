@@ -31,6 +31,8 @@ class Converter(object):
 
         # save the image
         im = Image.open(StringIO.StringIO(response.content))
+        assert im.format == 'PNG'
+        
         im.save(saved_filename)
 
         return saved_filename
@@ -106,7 +108,7 @@ class Converter(object):
         try:
             retcode = subprocess.call(args)
             assert retcode == 0
-        except (OSError, AssertionError) as e:
-            raise Exception("ERROR: executing conversion program failed. %s" % e)
+        except:
+            raise Exception("ERROR: executing conversion program failed.")
 
         return output_filename

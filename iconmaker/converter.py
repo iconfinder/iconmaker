@@ -5,13 +5,11 @@ import os
 import sys
 import utils
 import tempfile
-import logging
 import requests
 import StringIO
 from PIL import Image
 
-
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+from logger import logging
 
 class Converter(object):
     """Convert a set of PNG icons to either ICO or ICNS format
@@ -42,6 +40,8 @@ class Converter(object):
     def __init__(self):
         """initializer"""
 
+        """ cache the file locations
+        """
         self.png2ico = '/usr/local/bin/png2ico'
         self.png2icns = '/usr/local/bin/png2icns'
 

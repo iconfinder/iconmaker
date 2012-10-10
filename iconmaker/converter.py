@@ -22,11 +22,14 @@ class Converter(object):
             :returns: path to the saved_filename
         """
 
+        # get the image
         response = requests.get(url)
 
+        # generate temp filename for it
         saved_file = tempfile.NamedTemporaryFile(prefix='downloaded_', suffix='.png', dir='/tmp', delete=False)
         saved_filename = saved_file.name
 
+        # save the image
         im = Image.open(StringIO.StringIO(response.content))
         im.save(saved_filename)
 
@@ -34,13 +37,14 @@ class Converter(object):
 
 
     def __init__(self):
-        """initializer"""
+        """Initializer
+        """
 
         # cache the file locations
         self.png2ico = '/usr/local/bin/png2ico'
         self.png2icns = '/usr/local/bin/png2icns'
 
-        # check and/or fine the correct file locations
+        # check and/or find the correct file locations
         if not os.path.isfile(self.png2ico):
             self.png2ico = utils.which(os.path.basename(self.png2ico))
             if not self.png2ico:
@@ -85,19 +89,20 @@ class Converter(object):
 
                 remote_png_list.append(fetched_filename)
 
+        # if we had to fetch images, use those instead, otherwise 
+        # use the original list
         png_list = remote_png_list if remote_png_list else png_list
 
         # output file for the ICNS or ICO
-        output_file = tempfile.NamedTemporaryFile(prefix='output5_', suffix='.%s' % target_format, dir='/tmp', delete=False)
+        output_file = tempfile.NamedTemporaryFile(prefix='output_', suffix='.%s' % target_format, dir='/tmp', delete=False)
         output_filename = output_file.name
 
         # builds args for the conversion command
         args = png_list
         args.insert(0, output_filename)
         args.insert(0, conversion_binary)
-        print args
 
-        # execute shell command
+        # execute conversion command
         try:
             retcode = subprocess.call(args)
             assert retcode == 0

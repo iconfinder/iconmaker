@@ -11,11 +11,17 @@ from PIL import Image
 
 from logger import logging
 
+FORMAT_PNG = 'png'
+FORMAT_GIF = 'gif'
+FORMAT_ICO = 'ico'
+FORMAT_ICNS = 'icns'
+
+
 class Converter(object):
-    """Convert a set of PNG icons to either ICO or ICNS format.
+    """Convert a set of PNG/GIF icons to either ICO or ICNS format.
     """
 
-    def _fetch_png(self, url):
+    def _fetch_image(self, url):
         """Fetch the requested image and save it in a temporary file.
 
             :params input: 
@@ -27,15 +33,16 @@ class Converter(object):
         # get the image
         response = requests.get(url)
 
-        # generate temp filename for it
-        saved_file = tempfile.NamedTemporaryFile(prefix='downloaded_', suffix='.png', dir='/tmp', delete=False)
-        saved_filename = saved_file.name
-
         # save the image
         im = Image.open(StringIO.StringIO(response.content))
-        if im.format.upper() not in self.supported_source_formats:
+        image_format = im.format.lower()
+        if image_format not in self.supported_source_formats:
             raise Exception('The source file is not of a supported format. Supported formats are: %s' % 
                             join(', ',self.supported_source_formats)) 
+
+        # generate temp filename for it
+        saved_file = tempfile.NamedTemporaryFile(prefix='downloaded_', suffix='.' + image_format, dir='/tmp', delete=False)
+        saved_filename = saved_file.name            
         
         im.save(saved_filename)
 
@@ -46,8 +53,8 @@ class Converter(object):
         """Initializer.
         """
 
-        self.supported_source_formats = ['GIF', 'PNG']
-        self.supported_target_formats = ['ICO', 'ICNS']
+        self.supported_source_formats = [FORMAT_GIF, FORMAT_PNG]
+        self.supported_target_formats = [FORMAT_ICO, FORMAT_ICNS]
         self.png2ico = '/usr/local/bin/png2ico'
         self.png2icns = '/usr/local/bin/png2icns'
         self.gif2png = '/opt/local/bin/convert'
@@ -68,18 +75,18 @@ class Converter(object):
             if not self.gif2png:
                 raise Exception("The binary gif2png was not found")
 
-        self.convert_binaries = {'ICO':self.png2ico, 'ICNS':self.png2icns}
+        self.convert_binaries = {FORMAT_ICO:self.png2ico, FORMAT_ICNS:self.png2icns}
 
 
-    def convert(self, 
+    def convert(self,
                 target_format, 
-                png_list):
-        """Convert a list of png files to an ico file.
+                image_list):
+        """Convert a list of image files to an ico/icns file.
 
         :param target_format: 
             ICO or ICNS.
-        :param pnglist: 
-            List of png files to convert (either local paths or URLs).
+        :param image_list: 
+            List of image files to convert (either local paths or URLs).
 
         :returns: 
             Local path to the generated ico or None if an error occured.
@@ -87,47 +94,67 @@ class Converter(object):
 
         # check our input arguments
         try:
-            conversion_binary = self.convert_binaries[target_format.upper()]
+            conversion_binary = self.convert_binaries[target_format.lower()]
         except:
             raise Exception("Invalid target format. Target format must be either ICO or ICNS.")
 
         try:
-            assert len(png_list) > 0
+            assert len(image_list) > 0
         except:
-            raise Exception("Input list of PNG cannot be empty.")
+            raise Exception("Input list cannot be empty.")
 
         # if any/all of the elements are http, let's create a new list insteads
-        remote_png_list = []
-        for resource in png_list:
+        remote_icon_list = []
+        for resource in image_list:
             if resource.startswith("http:") or resource.startswith("https:"):
                 try:
-                    fetched_filename = self._fetch_png(resource)
+                    fetched_filename = self._fetch_image(resource)
                 except:
                     raise Exception("Problem fetching image.")
 
-                remote_png_list.append(fetched_filename)
+                remote_icon_list.append(fetched_filename)
 
         # if we had to fetch images, use those instead, otherwise 
         # use the original list
-        png_list = remote_png_list if remote_png_list else png_list
+        image_list = remote_icon_list if remote_icon_list else image_list
 
         # if the image is GIF, convert it to PNG first
-        for file_path in png_list:
-            file_base, file_extension = os.path.splitext(file_path)
-            if file_extension == 'gif':
-                png_file_path = file_base + '.png'
+        new_icon_list = []
+        for image_file_path in image_list:
+            file_base, file_extension = os.path.splitext(image_file_path)
+            file_extension = file_extension[1:]
+            new_image_file_path = ''
+
+            logging.debug('name, ext: %s %s' % (file_base, file_extension))
+
+            if file_extension == FORMAT_GIF:
+                logging.debug('converting %s' % image_file_path)
+                new_image_file_path = file_base + '.' + FORMAT_PNG
+
+                if os.path.isfile(new_image_file_path):
+                    raise Exception('Target PNG file exists, will not overwrite.')
+
                 try:
-                    retcode = subprocess.call([self.gif2png, file_path, png_file_path])
+                    retcode = subprocess.call([self.gif2png, image_file_path, new_image_file_path])
                     assert retcode == 0
                 except:
-                    raise Exception('GIF to PNG conversion failed. (%s)' % file_path)
+                    raise Exception('GIF to PNG conversion failed. (%s)' % image_file_path)
+
+            if new_image_file_path:
+                new_icon_list.append(new_image_file_path)
+            else:
+                new_icon_list.append(image_file_path)
+
+        # the new list
+        image_list = new_icon_list
+        logging.debug('new list %s' % image_list)
 
         # output file in ICNS or ICO format
         output_file = tempfile.NamedTemporaryFile(prefix='output_', suffix='.%s' % target_format, dir='/tmp', delete=False)
         output_filename = output_file.name
 
         # builds args for the conversion command
-        args = png_list
+        args = image_list
         args.insert(0, output_filename)
         args.insert(0, conversion_binary)
 

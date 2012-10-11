@@ -27,7 +27,8 @@ class ConverterTests(unittest.TestCase):
         """
         converter = Converter()
         self.assertRaises(Exception, converter.convert, 'foo', [os.path.join(ICONS_TEST_DIR,'icon16x16.png'),
-                                                                os.path.join(ICONS_TEST_DIR,'icon32x32.png')])
+                                                                os.path.join(ICONS_TEST_DIR,'icon32x32.png')
+                                                                ])
 
     def test_convert_bad_local_pnglist(self):
         """Test conversion from bad local source.
@@ -35,11 +36,13 @@ class ConverterTests(unittest.TestCase):
         converter = Converter()
         self.assertRaises(Exception, converter.convert, 'ico', [os.path.join(ICONS_TEST_DIR,'icon16x16.png'),
                                                                 os.path.join(ICONS_TEST_DIR,'icon32x32.png'),
-                                                                '/foo.png'])
+                                                                '/foo.png'
+                                                                ])
 
         self.assertRaises(Exception, converter.convert, 'icns',[os.path.join(ICONS_TEST_DIR,'icon16x16.png'),
                                                                 os.path.join(ICONS_TEST_DIR,'icon32x32.png'),
-                                                                '/foo.png'])
+                                                                '/foo.png'
+                                                                ])
 
     def test_convert_bad_remote_pnglist(self):
         """Test conversion from bad remote source.
@@ -47,27 +50,35 @@ class ConverterTests(unittest.TestCase):
         converter = Converter()
         self.assertRaises(Exception, converter.convert, 'ico', ['http://localhost/www/icon16x16.png',
                                                                 'http://localhost/www/foo.png',                
-                                                                'http://localhost/www/icon32x32.png'])
+                                                                'http://localhost/www/icon32x32.png'
+                                                                ])
         self.assertRaises(Exception, converter.convert, 'icns', ['http://localhost/www/icon16x16.png',
-                                                                'http://localhost/www/foo.png',                
-                                                                'http://localhost/www/icon32x32.png'])
+                                                                 'http://localhost/www/foo.png',                
+                                                                 'http://localhost/www/icon32x32.png'
+                                                                ])
     def test_convert_local(self):
         """Test conversion from local source.
         """
         converter = Converter()
-        self.assertTrue(converter.convert('ico',  [os.path.join(ICONS_TEST_DIR,'icon16x16.png'),
-                                                    os.path.join(ICONS_TEST_DIR,'icon32x32.png')]))
-        self.assertTrue(converter.convert('icns', [os.path.join(ICONS_TEST_DIR,'icon16x16.png'),
-                                                    os.path.join(ICONS_TEST_DIR,'icon32x32.png')]))
+        self.assertTrue(converter.convert('ico',  [ os.path.join(ICONS_TEST_DIR,'icon16x16.gif'),
+                                                    os.path.join(ICONS_TEST_DIR,'icon16x16.png'),
+                                                    os.path.join(ICONS_TEST_DIR,'icon32x32.png')
+                                                   ]))
+        self.assertTrue(converter.convert('icns', [ os.path.join(ICONS_TEST_DIR,'icon16x16.gif'),
+                                                    os.path.join(ICONS_TEST_DIR,'icon16x16.png'),
+                                                    os.path.join(ICONS_TEST_DIR,'icon32x32.png')
+                                                   ]))
 
     def test_convert_remote(self):
         """Test conversion from remote source.
         """     
         converter = Converter()
         self.assertTrue(converter.convert('ico', ['http://localhost/www/icon16x16.png',
-                                                   'http://localhost/www/icon32x32.png']))
+                                                   'http://localhost/www/icon32x32.png'
+                                                  ]))
         self.assertTrue(converter.convert('icns', ['http://localhost/www/icon16x16.png',
-                                                   'http://localhost/www/icon32x32.png']))
+                                                   'http://localhost/www/icon32x32.png'
+                                                   ]))
 
 if __name__=='__main__':
     unittest.main()

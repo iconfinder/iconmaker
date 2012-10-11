@@ -12,13 +12,16 @@ from PIL import Image
 from logger import logging
 
 class Converter(object):
-    """Convert a set of PNG icons to either ICO or ICNS format
+    """Convert a set of PNG icons to either ICO or ICNS format.
     """
-    def _fetch_png(self, url):
-        """Fetch the requested image and save it in a temporary file
 
-            :params input: url of the image to fetch
-            :returns: path to the saved_filename
+    def _fetch_png(self, url):
+        """Fetch the requested image and save it in a temporary file.
+
+            :params input: 
+                URL of the image to fetch.
+            :returns: 
+                Path to the saved_filename.
         """
 
         # get the image
@@ -40,8 +43,9 @@ class Converter(object):
 
 
     def __init__(self):
-        """Initializer
+        """Initializer.
         """
+
         self.supported_source_formats = ['GIF', 'PNG']
         self.supported_target_formats = ['ICO', 'ICNS']
         self.png2ico = '/usr/local/bin/png2ico'
@@ -70,14 +74,15 @@ class Converter(object):
     def convert(self, 
                 target_format, 
                 png_list):
-        """Convert a list of png files to an ico file
+        """Convert a list of png files to an ico file.
 
         :param target_format: 
             ICO or ICNS.
         :param pnglist: 
             List of png files to convert (either local paths or URLs).
 
-        :returns: local path to the generated ico or None if an error occured        
+        :returns: 
+            Local path to the generated ico or None if an error occured.
         """
 
         # check our input arguments

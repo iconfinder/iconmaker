@@ -119,7 +119,7 @@ class Converter(object):
         image_list = remote_icon_list if remote_icon_list else image_list
 
         # if the image is GIF, convert it to PNG first
-        new_icon_list = []
+        new_image_list = []
         for image_file_path in image_list:
             file_base, file_extension = os.path.splitext(image_file_path)
             file_extension = file_extension[1:]
@@ -131,9 +131,6 @@ class Converter(object):
                 logging.debug('converting %s' % image_file_path)
                 new_image_file_path = file_base + '.' + FORMAT_PNG
 
-                if os.path.isfile(new_image_file_path):
-                    raise Exception('Target PNG file exists, will not overwrite.')
-
                 try:
                     retcode = subprocess.call([self.gif2png, image_file_path, new_image_file_path])
                     assert retcode == 0
@@ -141,19 +138,18 @@ class Converter(object):
                     raise Exception('GIF to PNG conversion failed. (%s)' % image_file_path)
 
             if new_image_file_path:
-                new_icon_list.append(new_image_file_path)
+                new_image_list.append(new_image_file_path)
             else:
-                new_icon_list.append(image_file_path)
+                new_image_list.append(image_file_path)
 
-        # the new list
-        image_list = new_icon_list
-        logging.debug('new list %s' % image_list)
+        image_list = new_image_list
 
         # output file in ICNS or ICO format
         output_file = tempfile.NamedTemporaryFile(prefix='output_', suffix='.%s' % target_format, dir='/tmp', delete=False)
         output_filename = output_file.name
 
         # builds args for the conversion command
+        logging.debug('image list: %s' % image_list)
         args = image_list
         args.insert(0, output_filename)
         args.insert(0, conversion_binary)

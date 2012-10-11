@@ -61,11 +61,9 @@ class ConverterTests(unittest.TestCase):
         """
         converter = Converter()
         self.assertTrue(converter.convert('ico',  [ os.path.join(ICONS_TEST_DIR,'icon16x16.gif'),
-                                                    os.path.join(ICONS_TEST_DIR,'icon16x16.png'),
                                                     os.path.join(ICONS_TEST_DIR,'icon32x32.png')
                                                    ]))
         self.assertTrue(converter.convert('icns', [ os.path.join(ICONS_TEST_DIR,'icon16x16.gif'),
-                                                    os.path.join(ICONS_TEST_DIR,'icon16x16.png'),
                                                     os.path.join(ICONS_TEST_DIR,'icon32x32.png')
                                                    ]))
 

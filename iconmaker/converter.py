@@ -92,9 +92,11 @@ class Converter(object):
             Local path to the generated ico or None if an error occured.
         """
 
+
         # check our input arguments
         try:
-            conversion_binary = self.convert_binaries[target_format.lower()]
+            target_format = target_format.lower()
+            conversion_binary = self.convert_binaries[target_format]
         except:
             raise Exception("Invalid target format. Target format must be either ICO or ICNS.")
 

@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from PIL import Image
+
+
+def get_image_sizes(image_list):
+    image_dict = {}
+    for image in image_list:
+        image_dict[image] = get_image_size(image)
+
+    return image_dict
 
 
 def get_image_size(path):
@@ -9,10 +18,8 @@ def get_image_size(path):
     :returns `tuple` containing `int` width and size 
     """
 
-    from PIL import Image
-
     im = Image.open(path)
-    return im.size
+    return im.size[0]
 
 
 def which(program):

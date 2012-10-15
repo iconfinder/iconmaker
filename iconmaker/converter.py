@@ -3,11 +3,12 @@
 import subprocess
 import os
 import sys
-import utils
 import tempfile
 import requests
 import StringIO
 from PIL import Image
+
+from utils import get_image_sizes, which
 
 from logger import logging
 
@@ -61,17 +62,17 @@ class Converter(object):
 
         # check and/or find the correct file locations
         if not os.path.isfile(self.png2ico):
-            self.png2ico = utils.which(os.path.basename(self.png2ico))
+            self.png2ico = which(os.path.basename(self.png2ico))
             if not self.png2ico:
                 raise Exception("The binary png2ico was not found")
 
         if not os.path.isfile(self.png2icns):
-            self.png2icns = utils.which(os.path.basename(self.png2icns))
+            self.png2icns = which(os.path.basename(self.png2icns))
             if not self.png2icns:
                 raise Exception("The binary png2icns was not found")
 
         if not os.path.isfile(self.gif2png):
-            self.gif2png = utils.which(os.path.basename(self.gif2png))
+            self.gif2png = which(os.path.basename(self.gif2png))
             if not self.gif2png:
                 raise Exception("The binary gif2png was not found")
 
@@ -143,15 +144,33 @@ class Converter(object):
 
         # rules for ICNS generation: (1) width must be multiple of 8 and <256. (2) Height must be <256. (3) Cannot be 64x64
         # rules for ICO generation: (1) and (2) above
-        # todo: cache image size and compile Jasper libs to support 512 and 1024 icons
+        # todo: compile Jasper libs to support 512 and 1024 icons
+
+        # cache image size 
+        image_dict = get_image_sizes(image_list)
+
+        # get the largest available size
+        existing_images = sorted([sz for sz in image_dict.values()])
+        largest_size = existing_images[-1]
+        existing_images = set(existing_images)
+
+        # generate the missing image sizes (by downscaling largest icon)
+        #  need sizes: 16, 32, 64, 128, 256, 512, 1024
+        need_images = set([16, 32, 64, 128, 256, 512, 1024])
+        missing = need_images - existing_images
+        logging.debug('missing sizes: %s' % missing)
+
+        # todo: fill in the missing images by downscaling the `largest_size` above
+        #
+
         ## filter out certain icons
         if target_format == FORMAT_ICNS:
-            image_list = [i for i in image_list if utils.get_image_size(i)[0] % 8 == 0 and \
-                                                    utils.get_image_size(i)[0] != 64 and \
-                                                    utils.get_image_size(i)[0] < 256]
+            image_list = [i for i in image_list if image_dict[i] % 8 == 0 and \
+                                                    image_dict[i] != 64 and \
+                                                    image_dict[i] < 256]
         else:
-            image_list = [i for i in image_list if utils.get_image_size(i)[0] % 8 == 0 and \
-                                                    utils.get_image_size(i)[0] < 256]
+            image_list = [i for i in image_list if image_dict[i] % 8 == 0 and \
+                                                    image_dict[i] < 256]
 
         # builds args for the conversion command
         logging.debug('image list: %s' % image_list)

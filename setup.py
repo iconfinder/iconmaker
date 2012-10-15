@@ -1,4 +1,5 @@
 import os
+import glob
 from distutils.core import setup
 
 # Dynamically calculate the version based on tagging.VERSION.
@@ -12,16 +13,16 @@ setup(
     name = 'iconmaker',
     version = '1.0',
     url = 'http://www.iconfinder.com',
-    license = 'LICENSE.txt'
-    description = 'Icon conversion utility'
+    license = 'LICENSE.txt',
+    description = 'Icon conversion utility',
     long_description = open('README.txt').read(),
     package_dir = {'iconmaker': 'iconmaker'},
     packages = ['iconmaker', 
                 'iconmaker.tests'],
     package_data = {'iconmaker':[
-                        glob('tests/icons/*'),
+                        #glob.glob('tests/icons/*'),
                     ]},
     install_requires = ['PIL >= 1.1.7',
                         'requests >= 0.14.1'
-    ],
-)
+                    ],    
+    )

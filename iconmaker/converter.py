@@ -105,46 +105,35 @@ class Converter(object):
         except:
             raise Exception("Input list cannot be empty.")
 
-        # if any/all of the elements are http, let's create a new list insteads
-        remote_icon_list = []
-        for resource in image_list:
-            if resource.startswith("http:") or resource.startswith("https:"):
+
+        # image_list can contain either a local path or an http url
+        new_icon_list = []
+        for image_location in image_list:
+            if image_location.startswith("http:") or image_location.startswith("https:"):
                 try:
-                    fetched_filename = self._fetch_image(resource)
+                    image_location = self._fetch_image(image_location)
                 except:
                     raise Exception("Problem fetching image.")
 
-                remote_icon_list.append(fetched_filename)
+            # check the extension to see if we'll need to convert something else to PNG
+            image_base, image_extension = os.path.splitext(image_location)
+            image_extension = image_extension[1:]
 
-        # if we had to fetch images, use those instead, otherwise 
-        # use the original list
-        image_list = remote_icon_list if remote_icon_list else image_list
-
-        # if the image is GIF, convert it to PNG first
-        new_image_list = []
-        for image_file_path in image_list:
-            file_base, file_extension = os.path.splitext(image_file_path)
-            file_extension = file_extension[1:]
-            new_image_file_path = ''
-
-            logging.debug('name, ext: %s %s' % (file_base, file_extension))
-
-            if file_extension == FORMAT_GIF:
-                logging.debug('converting %s' % image_file_path)
-                new_image_file_path = file_base + '.' + FORMAT_PNG
+            if image_extension == FORMAT_GIF:
+                logging.debug('converting png to gif: %s' % image_location)
+                image_location_png = "%s.%s" % (image_base, FORMAT_PNG)
 
                 try:
-                    retcode = subprocess.call([self.gif2png, image_file_path, new_image_file_path])
+                    retcode = subprocess.call([self.gif2png, image_location, image_location_png])
                     assert retcode == 0
                 except:
-                    raise Exception('GIF to PNG conversion failed. (%s)' % image_file_path)
+                    raise Exception('GIF to PNG conversion failed. (%s)' % image_location)
 
-            if new_image_file_path:
-                new_image_list.append(new_image_file_path)
-            else:
-                new_image_list.append(image_file_path)
+                image_location = image_location_png
 
-        image_list = new_image_list
+            new_icon_list.append(image_location)
+
+        image_list = new_icon_list
 
         # output file in ICNS or ICO format
         output_file = tempfile.NamedTemporaryFile(prefix='output_', suffix='.%s' % target_format, dir='/tmp', delete=False)
@@ -161,6 +150,6 @@ class Converter(object):
             retcode = subprocess.call(args)
             assert retcode == 0
         except:
-            raise Exception("PNG to ICO/ICNS conversion failed. (%s)" % output_filename)
+            raise Exception("Icon conversion failed. (%s)" % output_filename)
 
         return output_filename

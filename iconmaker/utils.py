@@ -1,5 +1,20 @@
 # -*- coding: utf-8 -*-
 
+
+
+def get_image_size(path):
+    """Return the size of the image
+
+    :param path: path of the image 
+    :returns `tuple` containing `int` width and size 
+    """
+
+    from PIL import Image
+
+    im = Image.open(path)
+    return im.size
+
+
 def which(program):
     """Determine if a specific executable exists
 

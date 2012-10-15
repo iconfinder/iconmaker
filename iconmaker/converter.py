@@ -89,7 +89,7 @@ class Converter(object):
             List of image files to convert (either local paths or URLs).
 
         :returns: 
-            Local path to the generated ico or None if an error occured.
+            Local path to the generated ico or raise an Exception
         """
 
 
@@ -135,9 +135,23 @@ class Converter(object):
 
         image_list = new_icon_list
 
+
         # output file in ICNS or ICO format
         output_file = tempfile.NamedTemporaryFile(prefix='output_', suffix='.%s' % target_format, dir='/tmp', delete=False)
         output_filename = output_file.name
+
+
+        # rules for ICNS generation: (1) width must be multiple of 8 and <256. (2) Height must be <256. (3) Cannot be 64x64
+        # rules for ICO generation: (1) and (2) above
+        # todo: cache image size and compile Jasper libs to support 512 and 1024 icons
+        ## filter out certain icons
+        if target_format == FORMAT_ICNS:
+            image_list = [i for i in image_list if utils.get_image_size(i)[0] % 8 == 0 and \
+                                                    utils.get_image_size(i)[0] != 64 and \
+                                                    utils.get_image_size(i)[0] < 256]
+        else:
+            image_list = [i for i in image_list if utils.get_image_size(i)[0] % 8 == 0 and \
+                                                    utils.get_image_size(i)[0] < 256]
 
         # builds args for the conversion command
         logging.debug('image list: %s' % image_list)
@@ -150,6 +164,6 @@ class Converter(object):
             retcode = subprocess.call(args)
             assert retcode == 0
         except:
-            raise Exception("Icon conversion failed. (%s)" % output_filename)
+            raise Exception("Icon conversion failed. (%s:%s)" % (target_format, output_filename))
 
         return output_filename

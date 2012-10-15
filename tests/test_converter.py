@@ -78,5 +78,42 @@ class ConverterTests(unittest.TestCase):
                                                    'http://localhost/www/icon32x32.png'
                                                    ]))
 
+    def test_iconsets(self):
+        """Test converting iconssets from the db
+        """
+        converter = Converter()
+
+        # generate a list of icons to test
+        import mysql.connector
+
+        # pull up 100 icon sets, and generate ico/icns for them
+        db = mysql.connector.Connect(host="localhost",
+            user="root",
+            password="",
+            database="iconfinder_local")
+        cursor = db.cursor()
+        cursor.execute("SELECT name, iconid, newpath\
+            FROM icondata_local\
+            WHERE (active = 1 AND sizex IS NOT NULL AND sizey IS NOT NULL AND iconid < 10) \
+            ORDER BY iconid")
+
+        rows = cursor.fetchall()
+        cursor.close()
+        db.close()
+
+        # create dict populated with key (collection name) -> values (list containing urls)
+        iconsets = {}
+        for row in rows:
+            (name, iconid, newpath) = row
+            iconsets.setdefault(name, []).append("http://cdn1.iconfinder.com/data/icons/%s%s" % (newpath, name))
+            #print row
+
+        # cycle through the collections and test them out
+        for iconset in iconsets.values():
+            self.assertTrue(converter.convert('ico', iconset))
+            self.assertTrue(converter.convert('icns', iconset))
+
+
+
 if __name__=='__main__':
     unittest.main()

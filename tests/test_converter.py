@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.abspath('..'))
 from iconmaker.converter import Converter
 
 ICONS_TEST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'icons')
+RANDOM_ICONSETS = 50
 
 class ConverterTests(unittest.TestCase):
     """Unit tests for various conversion operations.
@@ -92,10 +93,19 @@ class ConverterTests(unittest.TestCase):
             password="",
             database="iconfinder_local")
         cursor = db.cursor()
+
+        # get N random iconsets
+        # using 1, 1000 inclusive for iconid
+        import random
+        random_iconsets = [random.randint(1,1000) for r in xrange(RANDOM_ICONSETS)]
+
         cursor.execute("SELECT name, iconid, newpath\
             FROM icondata_local\
-            WHERE (active = 1 AND sizex IS NOT NULL AND sizey IS NOT NULL AND iconid < 10) \
-            ORDER BY iconid")
+            WHERE (active = 1 AND \
+                sizex IS NOT NULL AND \
+                sizey IS NOT NULL AND \
+                iconid IN (%s)) \
+            ORDER BY iconid" % ','.join([str(i) for i in random_iconsets]))
 
         rows = cursor.fetchall()
         cursor.close()

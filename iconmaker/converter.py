@@ -66,21 +66,25 @@ class Converter(object):
         if not os.path.isfile(self.png2ico):
             self.png2ico = which(os.path.basename(self.png2ico))
             if not self.png2ico:
-                raise Exception("The binary png2ico was not found")
+                raise Exception("Unable to locate png2ico binary: %s" %
+                    self.png2ico)
 
         if not os.path.isfile(self.png2icns):
             self.png2icns = which(os.path.basename(self.png2icns))
             if not self.png2icns:
-                raise Exception("The binary png2icns was not found")
+                raise Exception("Unable to locate png2icns binary: %s" %
+                    self.png2icns)
 
         if not os.path.isfile(self.converttool):
             self.converttool = which(os.path.basename(self.converttool))
             if not self.converttool:
-                raise Exception("The binary gif2png was not found")
+                raise Exception("Unable to locate image conversion tool: %s" %
+                    self.converttool)
 
         self.convert_binaries = {
             FORMAT_ICO: self.png2ico,
-            FORMAT_ICNS: self.png2icns}
+            FORMAT_ICNS: self.png2icns
+        }
 
     def convert(self,
                 target_format,
@@ -114,10 +118,7 @@ class Converter(object):
         for image_location in image_list:
             if image_location.startswith("http:") or \
                 image_location.startswith("https:"):
-                try:
-                    image_location = self._fetch_image(image_location)
-                except:
-                    raise Exception("Problem fetching image.")
+                image_location = self._fetch_image(image_location)
 
             # check the extension to see if we'll
             # need to convert something else to PNG
@@ -129,11 +130,12 @@ class Converter(object):
                 image_location_png = "%s.%s" % (image_base, FORMAT_PNG)
 
                 try:
-                    subprocess.check_output([self.converttool,
+                    subprocess.check_output([
+                        self.converttool,
                         image_location,
                         image_location_png])
                 except subprocess.CalledProcessError, e:
-                    raise Exception('GIF to PNG conversion failed. (%s)' %
+                    raise Exception('Failed to convert GIF to PNG: %s' %
                         e.output)
 
                 image_location = image_location_png
@@ -205,7 +207,7 @@ class Converter(object):
                     new_size,
                     resized_filename])
             except subprocess.CalledProcessError, e:
-                raise Exception('Image resizing failed (%s)' % e.output)
+                raise Exception('Failed to resize image: %s' % e.output)
 
         ## filter out certain icons
         if target_format == FORMAT_ICNS:
@@ -228,6 +230,6 @@ class Converter(object):
         try:
             subprocess.check_output(args)
         except subprocess.CalledProcessError, e:
-            raise Exception('failed creating an icon (%s)' % e.output)
+            raise Exception('Failed to create container icon: %s' % e.output)
 
         return output_filename

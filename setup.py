@@ -1,4 +1,3 @@
-import os
 import glob
 from distutils.core import setup
 
@@ -10,19 +9,19 @@ from distutils.core import setup
 #    version = "%d.%d" % version_tuple[:2]
 
 setup(
-    name = 'iconmaker',
-    version = '1.0',
-    url = 'http://www.iconfinder.com',
-    license = 'LICENSE.txt',
-    description = 'Icon conversion utility',
-    long_description = open('README.txt').read(),
-    package_dir = {'iconmaker': 'iconmaker'},
-    packages = ['iconmaker', 
+    name='iconmaker',
+    version='1.0',
+    url='http://www.iconfinder.com',
+    license='LICENSE.txt',
+    description='Icon conversion utility',
+    long_description=open('README.txt').read(),
+    package_dir={'iconmaker': 'iconmaker'},
+    packages=['iconmaker',
                 'iconmaker.tests'],
-    package_data = {'iconmaker':[
+    package_data={'iconmaker': [
                         #glob.glob('tests/icons/*'),
                     ]},
-    install_requires = ['PIL >= 1.1.7',
+    install_requires=['PIL >= 1.1.7',
                         'requests >= 0.14.1'
-                    ],    
+                    ],
     )

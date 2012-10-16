@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import os
 from PIL import Image
 
 
 def get_image_sizes(image_list):
     """Set the sizes for each image
 
-    :param path: path of the image 
+    :param path: path of the image
     :returns `int` of the size of the icon
     """
 
@@ -20,7 +21,7 @@ def get_image_sizes(image_list):
 def get_image_size(path):
     """Return the size of the image
 
-    :param path: path of the image 
+    :param path: path of the image
     :returns `int` of the size of the icon
     """
 
@@ -38,7 +39,6 @@ def which(program):
     :returns full path to the executable or None if not found
     """
 
-    import os
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 

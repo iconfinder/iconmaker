@@ -1,7 +1,7 @@
 IconMaker
 =========
 
-Tool for converting icons from gif or png to icns or ico formats.
+Tool for converting icons from gif/png to icns/ico formats.
 
 
 

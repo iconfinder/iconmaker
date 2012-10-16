@@ -4,6 +4,12 @@ from PIL import Image
 
 
 def get_image_sizes(image_list):
+    """Set the sizes for each image
+
+    :param path: path of the image 
+    :returns `int` of the size of the icon
+    """
+
     image_dict = {}
     for image in image_list:
         image_dict[image] = get_image_size(image)
@@ -15,10 +21,13 @@ def get_image_size(path):
     """Return the size of the image
 
     :param path: path of the image 
-    :returns `tuple` containing `int` width and size 
+    :returns `int` of the size of the icon
     """
 
     im = Image.open(path)
+    if im.size[0] != im.size[1]:
+        raise Exception('width is not the same as height.')
+
     return im.size[0]
 
 

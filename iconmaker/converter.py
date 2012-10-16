@@ -146,26 +146,48 @@ class Converter(object):
         # rules for ICO generation: (1) and (2) above
         # todo: compile Jasper libs to support 512 and 1024 icons
 
-        # cache image size 
+        # cache image size
         image_dict = get_image_sizes(image_list)
+        logging.debug('image dict: %s' % image_dict)
 
-        # get the largest available size
-        existing_images = sorted([sz for sz in image_dict.values()])
-        largest_size = existing_images[-1]
-        existing_images = set(existing_images)
+        # sort by size descending, and get the largest image path
+        largest_image = sorted(image_dict.items(), key=lambda x: x[1], reverse=True)[0][0]
+        logging.debug('largest image: %s' % largest_image)
 
-        # generate the missing image sizes (by downscaling largest icon)
+        existing_sizes = sorted(image_dict.values(), reverse=True)
+        logging.debug('existing sizes: %s' % existing_sizes)
+
+        largest_size = existing_sizes[0]
+        logging.debug('largest_size: %d' % largest_size)
+
+        # generate the missing_sizes image sizes (by downscaling largest icon)
         #  need sizes: 16, 32, 64, 128, 256, 512, 1024
-        need_images = set([16, 32, 64, 128, 256, 512, 1024])
-        missing = need_images - existing_images
-        logging.debug('missing sizes: %s' % missing)
+        need_sizes = [16, 32, 64, 128, 256, 512, 1024]
+        missing_sizes = set(need_sizes) - set(existing_sizes)
 
-        # todo: fill in the missing images by downscaling the `largest_size` above
-        #
+        # we'll only generate if missing sizes are less than the largest size available
+        missing_sizes = [i for i in missing_sizes if i < largest_size]
+        logging.debug('missing sizes: %s (%s)' % (missing_sizes, largest_image))
+
+        # todo: fill in the missing images by downscaling the `largest_image` above
+        for m in missing_sizes:
+            image_base, image_extension = os.path.splitext(largest_image)
+            image_extension = image_extension[1:]
+
+            resized_file = tempfile.NamedTemporaryFile(prefix='resized_', suffix='.%s' % image_extension, dir='/tmp', delete=False)
+            resized_filename = resized_file.name
+
+            try:
+                new_size = "%dx%d", (m, m)
+                retcode = subprocess.call([self.gif2png, largest_image, "-resize ", new_size, resized_filename])
+                assert retcode == 0
+            except:
+                raise Exception('Image resizing failed (%s)' % image_location)
+
 
         ## filter out certain icons
         if target_format == FORMAT_ICNS:
-            image_list = [i for i in image_list if image_dict[i] % 8 == 0 and \
+            image_list = [i for i in image_list if image_dict[i] in need_sizes and \
                                                     image_dict[i] != 64 and \
                                                     image_dict[i] < 256]
         else:

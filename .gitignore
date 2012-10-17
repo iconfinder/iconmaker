@@ -1,3 +1,5 @@
 *.pyc
 *.sublime-*
-build/*
+/build
+/venv
+/dist

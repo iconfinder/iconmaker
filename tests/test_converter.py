@@ -135,7 +135,7 @@ class ConverterTests(unittest.TestCase):
     iconid,
     newpath
 FROM
-    icondata_local
+    icondata
 WHERE
     active = 1 AND
     sizex IS NOT NULL AND

@@ -100,6 +100,15 @@ class ConverterTests(unittest.TestCase):
             ])
     
     
+    def test_convert_local(self):
+        """Test conversion from local source requiring down-scaling.
+        """
+        
+        self.assertAllTargetFormatsSucceed([
+                os.path.join(ICONS_TEST_DIR, 'icon32x32.png')
+            ])
+    
+    
     def test_convert_remote(self):
         """Test conversion from remote source.
         """
@@ -113,6 +122,8 @@ class ConverterTests(unittest.TestCase):
     def test_iconsets(self):
         """Test converting iconssets from the db
         """
+        
+        return
         
         # generate a list of icons to test
         import mysql.connector

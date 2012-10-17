@@ -5,8 +5,9 @@ try:
 except:
     from StringIO import StringIO
 
-from utils import get_image_sizes, which
+from utils import get_image_sizes, which, image_mode_to_bit_depth
 from logger import logging
+from exceptions import ConversionError, ImageError
 from PIL import Image
 
 FORMAT_PNG = 'png'
@@ -64,6 +65,27 @@ class Converter(object):
         return saved_filename
     
     
+    def convert_to_png32(self, 
+                         source_path, 
+                         target_path):
+        """Convert a source image to a 32 bit PNG image.
+    
+        :param source_path: Path of the source image.
+        :param target_path: Path of the target image.
+        :raises ConversionError: if conversion fails.
+        """
+        
+        # Perform the conversion.
+        try:
+            subprocess.check_output([
+                    self.converttool,
+                    source_path,
+                    'png32:%s' % (target_path)
+                ], stderr = subprocess.STDOUT)
+        except subprocess.CalledProcessError, e:
+            raise ConversionError('failed to convert input file to 32-bit PNG: %s' % (e.output))
+    
+    
     def __init__(self):
         """Initializer.
         """
@@ -105,10 +127,9 @@ class Converter(object):
         """Convert a list of image files to an ico/icns file.
 
         :param target_format:
-            ICO or ICNS.
+            Target format. Must be one of ``FORMAT_ICO`` and ``FORMAT_ICNS``.
         :param image_list:
             List of image files to convert (either local paths or URLs).
-
         :returns:
             Local path to the generated ico or raise an Exception
         """
@@ -139,24 +160,38 @@ class Converter(object):
             image_extension = image_extension[1:]
 
             if image_extension == FORMAT_GIF:
-                logging.debug('converting png to gif: %s' % image_location)
+                logging.debug('converting input GIF image to 32-bit PNG: %s' % (image_location))
                 image_location_png = "%s.%s" % (image_base, FORMAT_PNG)
-
-                try:
-                    subprocess.check_output([
-                        self.converttool,
-                        image_location,
-                        image_location_png])
-                except subprocess.CalledProcessError, e:
-                    raise Exception('Failed to convert GIF to PNG: %s' %
-                        e.output)
-
+                self.convert_to_png32(image_location, 
+                                      image_location_png)
                 image_location = image_location_png
 
             new_icon_list.append(image_location)
 
-        image_list = new_icon_list
-
+        # Validate the bit depth of each PNG file.
+        image_list = []
+        
+        for image_path in new_icon_list:
+            # Skip past the image if the bit depth is greater than or equal to 
+            # 24 bits, which we're certain that png2icns handles well.
+            image = Image.open(image_path)
+            image_bit_depth = image_mode_to_bit_depth(image.mode)
+            
+            if image_bit_depth >= 24:
+                image_list.append(image_path)
+                continue
+            
+            # Convert the PNG file to 32 bit if we're below 24 bit.
+            deeper_file = tempfile.NamedTemporaryFile(
+                prefix = 'deeper_',
+                suffix = '.png', 
+                delete = False)
+            deeper_filename = deeper_file.name
+            
+            self.convert_to_png32(image_path, 
+                                  deeper_filename)
+            image_list.append(deeper_filename)
+        
         # output file in ICNS or ICO format
         output_file = tempfile.NamedTemporaryFile(
                         prefix='output_',
@@ -181,7 +216,7 @@ class Converter(object):
         largest_image = sorted(image_dict.items(),
                                 key=lambda x: x[1],
                                 reverse=True)[0][0]
-
+        
         existing_sizes = sorted(image_dict.values(), reverse=True)
 
         largest_size = existing_sizes[0]
@@ -196,31 +231,31 @@ class Converter(object):
         missing_sizes = [i for i in missing_sizes if i < largest_size]
         logging.debug('missing sizes: %s (%s)' %
             (missing_sizes, largest_image))
-
+        
         # create the missing images by
         # downscaling the `largest_image` above
         for m in missing_sizes:
             image_base, image_extension = os.path.splitext(largest_image)
             image_extension = image_extension[1:]
-
+            
             new_size = "%dx%d" % (m, m)
-
+            
             resized_file = tempfile.NamedTemporaryFile(
-                                prefix='resized_%s' % new_size,
-                                suffix='.%s' % image_extension,
-                                dir='/tmp',
-                                delete=False)
+                prefix = 'resized_%s' % new_size,
+                suffix = '.%s' % image_extension,
+                delete = False)
             resized_filename = resized_file.name
-
+            
             try:
                 subprocess.check_output([
-                    self.converttool,
-                    largest_image,
-                    "-resize",
-                    new_size,
-                    resized_filename])
+                        self.converttool,
+                        largest_image,
+                        "-resize",
+                        new_size,
+                        'png32:%s' % (resized_filename)
+                    ], stderr = subprocess.STDOUT)
             except subprocess.CalledProcessError, e:
-                raise Exception('Failed to resize image: %s' % e.output)
+                raise ImageError('failed to resize image: %s' % e.output)
 
         ## filter out certain icons
         if target_format == FORMAT_ICNS:
@@ -232,17 +267,18 @@ class Converter(object):
             image_list = [i for i in image_list if
                             image_dict[i] % 8 == 0 and
                             image_dict[i] < 256]
-
+        
         # builds args for the conversion command
         logging.debug('image list: %s' % image_list)
         args = image_list
         args.insert(0, output_filename)
         args.insert(0, conversion_binary)
-
+        
         # execute conversion command
         try:
-            subprocess.check_output(args)
+            subprocess.check_output(args, 
+                                    stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
-            raise Exception('Failed to create container icon: %s' % e.output)
+            raise ConversionError('Failed to create container icon: %s' % (e.output))
 
         return output_filename

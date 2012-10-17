@@ -1,5 +1,6 @@
 import os
 from PIL import Image
+from exceptions import ImageError
 
 def get_image_sizes(image_list):
     """Set the sizes for each image
@@ -50,3 +51,29 @@ def which(program):
                 return exe_file
 
     return None
+
+def image_mode_to_bit_depth(mode):
+    """Convert an image mode to a bit depth.
+    
+    Based on the official `PIL mode list <http://www.pythonware.com/library/pil/handbook/concepts.htm>`_.
+    
+    :param mode:
+        Image mode as provided by the :class:`PIL.Image.mode` property.
+    :returns:
+        the number of bits per pixel.
+    """
+    
+    try:
+        return {
+            '1': 1, 
+            'L': 8, 
+            'P': 8, 
+            'RGB': 24, 
+            'RGBA': 32, 
+            'CMYK': 32, 
+            'YCbCr': 24, 
+            'I': 32, 
+            'F': 32
+        }[mode]
+    except KeyError:
+        raise ImageError('cannot determine bit depth for unknown image mode: %s' % (mode))

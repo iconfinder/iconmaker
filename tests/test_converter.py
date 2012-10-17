@@ -1,134 +1,149 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import sys
 import os
 import unittest
 
 # Path hack.
-sys.path.insert(0, os.path.abspath('..'))
-from iconmaker.converter import Converter
+from iconmaker import Converter, FORMAT_PNG, FORMAT_GIF, FORMAT_ICO, FORMAT_ICNS
 
 ICONS_TEST_DIR = os.path.join(os.path.dirname(
                                 os.path.abspath(__file__)),
                                 'icons')
 RANDOM_ICONSETS = 50
 
-
 class ConverterTests(unittest.TestCase):
     """Unit tests for various conversion operations.
     """
-
+    
+    def setUp(self):
+        self.converter = Converter()
+    
+    
+    def assertAllTargetFormatsRaise(self, 
+                                    exception, 
+                                    files):
+        """``convert`` calls with any target format raises the given exception.
+        
+        :param exception: Exception type.
+        :param files: File list to pass to the convert class.
+        """
+        
+        with self.assertRaises(Exception):
+            self.converter.convert(FORMAT_ICO, 
+                                 files)
+        with self.assertRaises(Exception):
+            self.converter.convert(FORMAT_ICNS, 
+                                   files)
+    
+    
+    def assertAllTargetFormatsSucceed(self, 
+                                      files):
+        """``convert`` calls with any target format succeeds.
+        
+        :param files: File list to pass to the convert class.
+        """
+        
+        for format in [FORMAT_ICO, FORMAT_ICNS]:
+            result_path = self.converter.convert(format, 
+                                                 files)
+            self.assertTrue(os.path.exists(result_path))
+            self.assertTrue(os.path.isfile(result_path))
+            self.assertGreater(os.path.getsize(result_path), 0)
+    
+    
     def test_convert_empty_pnglist(self):
         """Test conversion from an empty source.
         """
-        converter = Converter()
-        self.assertRaises(Exception, converter.convert, 'ico', [])
-        self.assertRaises(Exception, converter.convert, 'icns', [])
-
-    def test_convert_wrong_format(self):
-        """Test conversion given a wrong icon format.
+        
+        self.assertAllTargetFormatsRaise(Exception, [])
+    
+    
+    def test_convert_invalid_format(self):
+        """Test conversion given an invalid target icon format.
         """
-        converter = Converter()
-        self.assertRaises(Exception,
-            converter.convert,
-            'foo',
-            [os.path.join(ICONS_TEST_DIR, 'icon16x16.png'),
-            os.path.join(ICONS_TEST_DIR, 'icon32x32.png')])
-
+        
+        with self.assertRaises(Exception):
+            self.converter.convert('foo', [
+                    os.path.join(ICONS_TEST_DIR, 'icon16x16.png'),
+                    os.path.join(ICONS_TEST_DIR, 'icon32x32.png')
+                ])
+    
+    
     def test_convert_bad_local_pnglist(self):
         """Test conversion from bad local source.
         """
-        converter = Converter()
-        self.assertRaises(Exception,
-            converter.convert,
-            'ico',
-            [os.path.join(ICONS_TEST_DIR, 'icon16x16.png'),
-            os.path.join(ICONS_TEST_DIR, 'icon32x32.png'),
-            '/foo.png'])
-
-        self.assertRaises(Exception,
-            converter.convert,
-            'icns',
-            [os.path.join(ICONS_TEST_DIR, 'icon16x16.png'),
-            os.path.join(ICONS_TEST_DIR, 'icon32x32.png'),
-            '/foo.png'])
-
+        
+        self.assertAllTargetFormatsRaise(Exception, [
+                os.path.join(ICONS_TEST_DIR, 'icon16x16.png'),
+                os.path.join(ICONS_TEST_DIR, 'icon32x32.png'),
+                '/foo.png'
+            ])
+    
+    
     def test_convert_bad_remote_pnglist(self):
         """Test conversion from bad remote source.
         """
-        converter = Converter()
-        self.assertRaises(Exception,
-            converter.convert,
-            'ico',
-            ['http://localhost/www/icon16x16.png',
-            'http://localhost/www/foo.png',
-            'http://localhost/www/icon32x32.png'])
-
-        self.assertRaises(Exception,
-            converter.convert,
-            'icns',
-            ['http://localhost/www/icon16x16.png',
-            'http://localhost/www/foo.png',
-            'http://localhost/www/icon32x32.png'])
-
+        
+        self.assertAllTargetFormatsRaise(Exception, [
+                'http://localhost:62010/www/icon16x16.png',
+                'http://localhost:62010/www/foo.png',
+                'http://localhost:62010/www/icon32x32.png'
+            ])
+    
+    
     def test_convert_local(self):
         """Test conversion from local source.
         """
-        converter = Converter()
-        self.assertTrue(converter.convert(
-            'ico',
-            [os.path.join(ICONS_TEST_DIR, 'icon16x16.gif'),
-            os.path.join(ICONS_TEST_DIR, 'icon32x32.png')
-            ]))
-
-        self.assertTrue(converter.convert(
-            'icns',
-            [os.path.join(ICONS_TEST_DIR, 'icon16x16.gif'),
-            os.path.join(ICONS_TEST_DIR, 'icon32x32.png')]))
-
+        
+        self.assertAllTargetFormatsSucceed([
+                os.path.join(ICONS_TEST_DIR, 'icon16x16.gif'),
+                os.path.join(ICONS_TEST_DIR, 'icon32x32.png')
+            ])
+    
+    
     def test_convert_remote(self):
         """Test conversion from remote source.
         """
-        converter = Converter()
-        self.assertTrue(converter.convert(
-            'ico',
-            ['http://localhost/www/icon16x16.png',
-            'http://localhost/www/icon32x32.png']))
-        self.assertTrue(converter.convert(
-            'icns',
-            ['http://localhost/www/icon16x16.png',
-            'http://localhost/www/icon32x32.png']))
-
+        
+        self.assertAllTargetFormatsSucceed([
+                'http://cdn1.iconfinder.com/data/icons/yooicons_set01_socialbookmarks/16/social_facebook_box_blue.png', 
+                'http://cdn1.iconfinder.com/data/icons/yooicons_set01_socialbookmarks/32/social_facebook_box_blue.png'
+            ])
+    
+    
     def test_iconsets(self):
         """Test converting iconssets from the db
         """
-        converter = Converter()
-
+        
         # generate a list of icons to test
         import mysql.connector
 
         # pull up 100 icon sets, and generate ico/icns for them
-        db = mysql.connector.Connect(host="localhost",
-                user="root",
-                password="",
-                database="iconfinder_local")
+        db = mysql.connector.Connect(host = os.getenv('DB_HOST', 'localhost'), 
+                                     user = os.getenv('DB_USER', 'root'),
+                                     password = os.getenv('DB_PASSWORD', ''),
+                                     database = os.getenv('DB_DATABASE', 'iconfinder_local'))
         cursor = db.cursor()
-
+        
         # get N random iconsets
         # using 1, 1000 inclusive for iconid
         import random
         random_iconsets = [random.randint(1, 1000) for r in
                             xrange(RANDOM_ICONSETS)]
 
-        cursor.execute("SELECT name, iconid, newpath \
-            FROM icondata_local \
-            WHERE (active = 1 AND \
-                sizex IS NOT NULL AND \
-                sizey IS NOT NULL AND \
-                iconid IN (%s)) \
-            ORDER BY iconid" % ','.join([str(i) for i in random_iconsets]))
-
+        cursor.execute("""SELECT
+    name,
+    iconid,
+    newpath
+FROM
+    icondata_local
+WHERE
+    active = 1 AND
+    sizex IS NOT NULL AND
+    sizey IS NOT NULL AND
+    iconid IN (%s)
+ORDER BY
+    iconid""" % ','.join([str(i) for i in random_iconsets]))
+        
         rows = cursor.fetchall()
         cursor.close()
         db.close()
@@ -145,9 +160,4 @@ class ConverterTests(unittest.TestCase):
 
         # cycle through the collections and test them out
         for iconset in iconsets.values():
-            self.assertTrue(converter.convert('ico', iconset))
-            self.assertTrue(converter.convert('icns', iconset))
-
-
-if __name__ == '__main__':
-    unittest.main()
+            self.assertAllTargetFormatsSucceed(iconset)

@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-
 import os
 from PIL import Image
-
 
 def get_image_sizes(image_list):
     """Set the sizes for each image

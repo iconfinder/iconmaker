@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
+import subprocess, os, tempfile, requests
 
-import subprocess
-import os
-import tempfile
-import requests
-import StringIO
-from PIL import Image
+try:
+    from cStringIO import StringIO
+except:
+    from StringIO import StringIO
 
 from utils import get_image_sizes, which
-
 from logger import logging
+from PIL import Image
 
 FORMAT_PNG = 'png'
 FORMAT_GIF = 'gif'
@@ -20,26 +18,39 @@ FORMAT_ICNS = 'icns'
 class Converter(object):
     """Convert a set of PNG/GIF icons to either ICO or ICNS format.
     """
+    
+    SUPPORTED_SOURCE_FORMATS = [FORMAT_GIF, 
+                                FORMAT_PNG]
+    """Support source image formats.
+    """
+    
+    
+    SUPPORTED_TARGET_FORMATS = [FORMAT_ICO, 
+                                FORMAT_ICNS]
+    """Supported target icon container formats.
+    """
+    
 
     def _fetch_image(self, url):
         """Fetch the requested image and save it in a temporary file.
 
-            :params input:
-                URL of the image to fetch.
-            :returns:
-                Path to the saved_filename.
+        :params input: URL of the image to fetch.
+        :returns:
+            temporary local file system path of the fetched image with an 
+            extension reflecting the image format.
         """
 
-        # get the image
+        # Get the image.
         response = requests.get(url)
+        response.raise_for_status(allow_redirects = False)
 
-        # save the image
-        im = Image.open(StringIO.StringIO(response.content))
+        # Save the image.
+        im = Image.open(StringIO(response.content))
         image_format = im.format.lower()
-        if image_format not in self.supported_source_formats:
+        if image_format not in Converter.SUPPORTED_SOURCE_FORMATS:
             raise Exception('The source file is not of a supported format. \
                             Supported formats are: %s' %
-                            ','.join(self.supported_source_formats))
+                            ','.join(Converter.SUPPORTED_SOURCE_FORMATS))
 
         # generate temp filename for it
         saved_file = tempfile.NamedTemporaryFile(
@@ -51,13 +62,14 @@ class Converter(object):
 
         im.save(saved_filename)
         return saved_filename
-
+    
+    
     def __init__(self):
         """Initializer.
         """
 
-        self.supported_source_formats = [FORMAT_GIF, FORMAT_PNG]
-        self.supported_target_formats = [FORMAT_ICO, FORMAT_ICNS]
+        Converter.SUPPORTED_SOURCE_FORMATS = [FORMAT_GIF, FORMAT_PNG]
+        Converter.SUPPORTED_TARGET_FORMATS = [FORMAT_ICO, FORMAT_ICNS]
         self.png2ico = '/usr/local/bin/png2ico'
         self.png2icns = '/usr/local/bin/png2icns'
         self.converttool = '/opt/local/bin/convert'
@@ -85,7 +97,8 @@ class Converter(object):
             FORMAT_ICO: self.png2ico,
             FORMAT_ICNS: self.png2icns
         }
-
+    
+    
     def convert(self,
                 target_format,
                 image_list):

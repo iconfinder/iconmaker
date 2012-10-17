@@ -11,7 +11,8 @@ icon container formats.
 from setuptools import setup, find_packages
 
 tests_require = [
-    'nose'
+    'nose', 
+    'mysql-connector-repackaged'
 ]
 
 install_requires = [

@@ -1,0 +1,15 @@
+#!/bin/bash -ex
+
+# Set up the virtual environment.
+cd $WORKSPACE
+virtualenv --distribute -q venv
+source ./venv/bin/activate
+export PIP_DOWNLOAD_CACHE=$HOME/.pip_download_cache
+pip install -r requirements.txt
+
+# Run the CI build.
+if [ ! -d "reports" ]; then
+  mkdir reports
+fi
+
+nosetests

@@ -134,28 +134,25 @@ class Converter(object):
             Local path to the generated ico or raise an Exception
         """
 
-        # check our input arguments
+        # Validate the input arguments.
         try:
-            target_format = target_format.lower()
             conversion_binary = self.convert_binaries[target_format]
-        except:
-            raise Exception("Invalid target format. \
-                Target format must be either ICO or ICNS.")
-
-        try:
-            assert len(image_list) > 0
-        except:
-            raise Exception("Input list cannot be empty.")
-
+        except KeyError:
+            raise ConversionError('invalid target format identifier: %s' % (target_format))
+        
+        if len(image_list) == 0:
+            raise ValueError('image input list cannot be empty')
+        
+        # Make sure that all input files are stored locally and as PNGs.
         # image_list can contain either a local path or an http url
-        new_icon_list = []
+        local_image_list = []
         for image_location in image_list:
-            if image_location.startswith("http:") or \
-                image_location.startswith("https:"):
+            if ((image_location.startswith("http:")) or 
+                (image_location.startswith("https:"))):
                 image_location = self._fetch_image(image_location)
-
-            # check the extension to see if we'll
-            # need to convert something else to PNG
+            
+            # Check the extension to see if we'll need to convert something 
+            # else to PNG.
             image_base, image_extension = os.path.splitext(image_location)
             image_extension = image_extension[1:]
 
@@ -166,12 +163,12 @@ class Converter(object):
                                       image_location_png)
                 image_location = image_location_png
 
-            new_icon_list.append(image_location)
+            local_image_list.append(image_location)
 
         # Validate the bit depth of each PNG file.
         image_list = []
         
-        for image_path in new_icon_list:
+        for image_path in local_image_list:
             # Skip past the image if the bit depth is greater than or equal to 
             # 24 bits, which we're certain that png2icns handles well.
             image = Image.open(image_path)
@@ -199,7 +196,7 @@ class Converter(object):
                         dir='/tmp',
                         delete=False)
         output_filename = output_file.name
-
+        
         # Rules for ICNS generation:
         # (1) width must be multiple of 8 and <256.
         # (2) Height must be <256.

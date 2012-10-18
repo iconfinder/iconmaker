@@ -1,12 +1,13 @@
-IconMaker
-=========
+# iconmaker
 
-Tool for converting icons from gif/png to icns/ico formats.
-
+Tool for converting icons from GIF or PNG images to ICO or ICNS icon container formats.
 
 
-Installation
-------------
+## Usage
+
+The `iconmaker` library provides a single class, `Converter` for dealing with conversions. Input files must be in either CompuServe GIF or PNG format.
+
+## Installation
 
 To install iconmaker, first install the required dependencies (in the exact order as shown below).
 

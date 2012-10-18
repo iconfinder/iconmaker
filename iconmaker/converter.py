@@ -16,6 +16,44 @@ FORMAT_ICO = 'ico'
 FORMAT_ICNS = 'icns'
 
 
+def is_size_convertible_to_icon(size_width, 
+                                size_height, 
+                                target_format):
+    """Check whether an image of a given size is convertible to an icon format.
+    
+    :param size_width: Width of the image.
+    :param size_height: Height of the image.
+    :param target_format: Target icon format.
+    :returns: 
+        ``True`` if the image can be converted to the given target icon format 
+        otherwise ``False``.
+    """
+    
+    # Sizes are constrainted by format.
+    if target_format == FORMAT_ICO:
+        # The width must be a multiple of 8.
+        if size_width % 8 != 0:
+            return False
+        
+        # The dimensions of the icons must in the range of [1 ; 256].
+        if ((size_width < 1) or 
+            (size_width > 256) or 
+            (size_height < 1) or 
+            (size_height > 256)):
+            return False
+    elif target_format == FORMAT_ICNS:
+        # ICNS requires quadratic input images.
+        if size_width != size_height:
+            return False
+        
+        # Apple's ICNS format supports only a subset of image sizes.
+        if not size_width in [16, 32, 48, 128, 256, 512, 1024]:
+            return False
+    
+    # We should be good.
+    return True
+
+
 class Converter(object):
     """Convert a set of PNG/GIF icons to either ICO or ICNS format.
     """
@@ -49,9 +87,7 @@ class Converter(object):
         im = Image.open(StringIO(response.content))
         image_format = im.format.lower()
         if image_format not in Converter.SUPPORTED_SOURCE_FORMATS:
-            raise Exception('The source file is not of a supported format. \
-                            Supported formats are: %s' %
-                            ','.join(Converter.SUPPORTED_SOURCE_FORMATS))
+            raise ImageError('The source file is not of a supported format. Supported formats are: %s' % (', '.join(Converter.SUPPORTED_SOURCE_FORMATS)))
 
         # generate temp filename for it
         saved_file = tempfile.NamedTemporaryFile(
@@ -130,7 +166,8 @@ class Converter(object):
     
     def convert(self,
                 target_format,
-                image_list):
+                image_list, 
+                scale_missing_sizes = False):
         """Convert a list of image files to an ico/icns file.
 
         :param target_format:
@@ -138,7 +175,7 @@ class Converter(object):
         :param image_list:
             List of image files to convert (either local paths or URLs).
         :returns:
-            Local path to the generated ico or raise an Exception
+            the local path to the generated icon file.
         """
 
         # Validate the input arguments.
@@ -171,7 +208,7 @@ class Converter(object):
                 image_location = image_location_png
 
             local_image_list.append(image_location)
-
+        
         # Validate the bit depth of each PNG file.
         image_list = []
         
@@ -196,7 +233,7 @@ class Converter(object):
                                   deeper_filename)
             image_list.append(deeper_filename)
         
-        # output file in ICNS or ICO format
+        # Allocate an output file.
         output_file = tempfile.NamedTemporaryFile(
                         prefix='output_',
                         suffix='.%s' % target_format,
@@ -204,93 +241,38 @@ class Converter(object):
                         delete=False)
         output_filename = output_file.name
         
-        # Rules for ICNS generation:
-        # (1) width must be multiple of 8 and <256.
-        # (2) Height must be <256.
-        # (3) Cannot be 64x64
-        # Rules for ICO generation:
-        # (1) and
-        # (2) above
-        # todo: compile Jasper libs to support 512 and 1024 icons
-
-        # cache image size and filter out images where width does not equal to height
-        # raises ImageError if we don't have any valid sized images
-        # returns {'/tmp/output1.png':16, '/tmp/output2.png':32, ['/tmp/output3.png':32], ... }
-        image_dict = check_and_get_image_sizes(image_list)
-
-        # there're duplicate icons for the same iconid,
-        # let's filter them out (png2icns doesnt like it)
-        image_dict_reversed = dict((v, k) for k, v in image_dict.iteritems())
-        image_list = image_dict_reversed.values()
-        image_dict = dict((v, k) for k, v in image_dict_reversed.iteritems())
-
-        # sort by size descending, and get the largest image path
-        largest_image = sorted(image_dict.items(),
-                                key=lambda x: x[1],
-                                reverse=True)[0][0]
-
-        existing_sizes = sorted(image_dict.values(), reverse=True)
-
-        largest_size = existing_sizes[0]
-
-        # generate the missing_sizes image sizes (by downscaling largest icon)
-        #  need sizes: 16, 32, 64, 128, 256, 512, 1024
-        need_sizes = [16, 32, 64, 128, 256, 512, 1024]
-        missing_sizes = set(need_sizes) - set(existing_sizes)
-
-        # we'll only generate if missing sizes are
-        # less than the largest size available
-        missing_sizes = [i for i in missing_sizes if i < largest_size]
-        logging.debug('missing sizes: %s (%s)' %
-            (missing_sizes, largest_image))
+        # Ensure that all image files have sizes compatible with the output 
+        # format.
+        image_sizes = []
         
-        # create the missing images by
-        # downscaling the `largest_image` above
-        for m in missing_sizes:
-            image_base, image_extension = os.path.splitext(largest_image)
-            image_extension = image_extension[1:]
+        for image_path in image_list:
+            image = Image.open(image_path)
             
-            new_size = "%dx%d" % (m, m)
+            if not is_size_convertible_to_icon(image.size[0], 
+                                               image.size[1], 
+                                               target_format):
+                raise ImageError('size of image %s (%d x %d) is incompatible with target format FORMAT_%s' % \
+                                     (image_path, 
+                                      image.size[0], 
+                                      image.size[1], 
+                                      target_format.upper()))
             
-            resized_file = tempfile.NamedTemporaryFile(
-                prefix = 'resized_%s' % new_size,
-                suffix = '.%s' % image_extension,
-                delete = False)
-            resized_filename = resized_file.name
-            
-            try:
-                subprocess.check_output([
-                        self.converttool,
-                        largest_image,
-                        "-resize",
-                        new_size,
-                        'png32:%s' % (resized_filename)
-                    ], stderr = subprocess.STDOUT)
-            except subprocess.CalledProcessError, e:
-                raise ImageError('failed to resize image: %s' % e.output)
-
-        ## filter out certain icons
-        if target_format == FORMAT_ICNS:
-            image_list = [i for i in image_list if
-                            image_dict[i] in need_sizes and
-                            image_dict[i] != 64 and
-                            image_dict[i] < 256]
-        else:
-            image_list = [i for i in image_list if
-                            image_dict[i] % 8 == 0 and
-                            image_dict[i] < 256]
-
-        # builds args for the conversion command
-        args = image_list
-        args.insert(0, output_filename)
-        args.insert(0, conversion_binary)
+            image_size_tuple = (image.size[0], image.size[1], )
+            if image_size_tuple in image_sizes:
+                raise ImageError('multiple images of size %d x %d supplied' % \
+                                     (image.size[0], 
+                                      image.size[1]))
+            image_sizes.append(image_size_tuple)
         
-        # execute conversion command
+        # Execute conversion command.
+        args = [conversion_binary, 
+                output_filename] + image_list
+            
         try:
             subprocess.check_output(args, 
                                     stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
-            logging.debug('args: %s' % args)
+            logging.debug('Conversion call: %s' % (' '.join(['"%s"' % (a) if ' ' in a else a for a in args])))
             raise ConversionError('Failed to create container icon: %s' % (e.output))
 
         return output_filename

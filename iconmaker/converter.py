@@ -94,6 +94,7 @@ class Converter(object):
         Converter.SUPPORTED_TARGET_FORMATS = [FORMAT_ICO, FORMAT_ICNS]
         self.png2ico = '/usr/local/bin/png2ico'
         self.png2icns = '/usr/local/bin/png2icns'
+        self.icns2png = '/usr/local/bin/icns2png'
         self.converttool = '/opt/local/bin/convert'
 
         # check and/or find the correct file locations
@@ -108,6 +109,12 @@ class Converter(object):
             if not self.png2icns:
                 raise Exception("Unable to locate png2icns binary: %s" %
                     self.png2icns)
+
+        if not os.path.isfile(self.icns2png):
+            self.icns2png = which(os.path.basename(self.icns2png))
+            if not self.icns2png:
+                raise Exception("Unable to locate icns2png binary: %s" %
+                    self.icns2png)
 
         if not os.path.isfile(self.converttool):
             self.converttool = which(os.path.basename(self.converttool))

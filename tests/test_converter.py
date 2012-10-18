@@ -1,9 +1,17 @@
-import sys
 import os
+import sys
+import subprocess
 import unittest
+from struct import unpack
+from PIL import Image
+try:
+    from cStringIO import StringIO
+except:
+    from StringIO import StringIO
 
 # Path hack.
 from iconmaker import Converter, FORMAT_PNG, FORMAT_GIF, FORMAT_ICO, FORMAT_ICNS
+
 
 ICONS_TEST_DIR = os.path.join(os.path.dirname(
                                 os.path.abspath(__file__)),
@@ -35,21 +43,41 @@ class ConverterTests(unittest.TestCase):
                                    files)
     
     
-    def assertAllTargetFormatsSucceed(self, 
+    def assertAllTargetFormatsSucceed(self,
                                       files):
         """``convert`` calls with any target format succeeds.
-        
+
         :param files: File list to pass to the convert class.
         """
-        
+
         for format in [FORMAT_ICO, FORMAT_ICNS]:
-            result_path = self.converter.convert(format, 
+            result_path = self.converter.convert(format,
                                                  files)
             self.assertTrue(os.path.exists(result_path))
             self.assertTrue(os.path.isfile(result_path))
             self.assertGreater(os.path.getsize(result_path), 0)
-    
-    
+
+            # The one who created it has the final word whether
+            # everything is OK
+            if format == FORMAT_ICNS:
+                self.assertTrue(
+                subprocess.check_output([
+                            self.converter.icns2png,
+                            "-l",
+                            result_path
+                        ], stderr=subprocess.STDOUT)
+                )
+            # simple check to see if it's ICO file
+            # from http://en.wikipedia.org/wiki/ICO_(file_format)
+            else:
+                with open(result_path, 'rb') as f:
+                    # header is 6 bytes
+                    data = f.read(6)
+                    fmt = '<3H' if sys.byteorder == 'little' else '>3H'
+                    self.assertTrue(unpack(fmt, data))
+                    header = unpack(fmt, data)
+                    self.assertTrue(header[:2] == (0, 1))
+
     def test_convert_empty_pnglist(self):
         """Test conversion from an empty source.
         """
@@ -123,7 +151,7 @@ class ConverterTests(unittest.TestCase):
         """Test converting iconssets from the db
         """
         
-        return
+        #return
         
         # generate a list of icons to test
         import mysql.connector
@@ -132,7 +160,7 @@ class ConverterTests(unittest.TestCase):
         db = mysql.connector.Connect(host = os.getenv('DB_HOST', 'localhost'), 
                                      user = os.getenv('DB_USER', 'root'),
                                      password = os.getenv('DB_PASSWORD', ''),
-                                     database = os.getenv('DB_DATABASE', 'iconfinder_local'))
+                                     database = os.getenv('DB_DATABASE', 'www_iconfinder'))
         cursor = db.cursor()
         
         # get N random iconsets

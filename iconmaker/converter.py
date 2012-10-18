@@ -166,8 +166,7 @@ class Converter(object):
     
     def convert(self,
                 target_format,
-                image_list, 
-                scale_missing_sizes = False):
+                image_list):
         """Convert a list of image files to an ico/icns file.
 
         :param target_format:

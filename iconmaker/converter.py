@@ -31,10 +31,6 @@ def is_size_convertible_to_icon(size_width,
     
     # Sizes are constrainted by format.
     if target_format == FORMAT_ICO:
-        # The width must be a multiple of 8.
-        if size_width % 8 != 0:
-            return False
-        
         # The dimensions of the icons must in the range of [1 ; 256].
         if ((size_width < 1) or 
             (size_width > 256) or 
@@ -128,18 +124,11 @@ class Converter(object):
 
         Converter.SUPPORTED_SOURCE_FORMATS = [FORMAT_GIF, FORMAT_PNG]
         Converter.SUPPORTED_TARGET_FORMATS = [FORMAT_ICO, FORMAT_ICNS]
-        self.png2ico = '/usr/local/bin/png2ico'
         self.png2icns = '/usr/local/bin/png2icns'
         self.icns2png = '/usr/local/bin/icns2png'
         self.converttool = '/opt/local/bin/convert'
 
         # check and/or find the correct file locations
-        if not os.path.isfile(self.png2ico):
-            self.png2ico = which(os.path.basename(self.png2ico))
-            if not self.png2ico:
-                raise Exception("Unable to locate png2ico binary: %s" %
-                    self.png2ico)
-
         if not os.path.isfile(self.png2icns):
             self.png2icns = which(os.path.basename(self.png2icns))
             if not self.png2icns:
@@ -157,11 +146,6 @@ class Converter(object):
             if not self.converttool:
                 raise Exception("Unable to locate image conversion tool: %s" %
                     self.converttool)
-
-        self.convert_binaries = {
-            FORMAT_ICO: self.png2ico,
-            FORMAT_ICNS: self.png2icns
-        }
     
     
     def convert(self,
@@ -178,9 +162,7 @@ class Converter(object):
         """
 
         # Validate the input arguments.
-        try:
-            conversion_binary = self.convert_binaries[target_format]
-        except KeyError:
+        if target_format not in Converter.SUPPORTED_TARGET_FORMATS:
             raise ConversionError('invalid target format identifier: %s' % (target_format))
         
         if len(image_list) == 0:
@@ -264,14 +246,17 @@ class Converter(object):
             image_sizes.append(image_size_tuple)
         
         # Execute conversion command.
-        args = [conversion_binary, 
-                output_filename] + image_list
-            
+        if target_format == FORMAT_ICNS:
+            args = [self.png2icns, 
+                    output_filename] + image_list
+        elif target_format == FORMAT_ICO:
+            args = [self.converttool] + image_list + [output_filename]
+        
         try:
             subprocess.check_output(args, 
                                     stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
             logging.debug('Conversion call: %s' % (' '.join(['"%s"' % (a) if ' ' in a else a for a in args])))
             raise ConversionError('Failed to create container icon: %s' % (e.output))
-
+        
         return output_filename

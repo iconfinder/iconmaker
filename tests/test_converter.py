@@ -1,7 +1,4 @@
-import os
-import sys
-import subprocess
-import unittest
+import os, sys, subprocess, unittest, tempfile
 from struct import unpack
 from PIL import Image
 try:
@@ -11,6 +8,7 @@ except:
 
 # Path hack.
 from iconmaker import Converter, FORMAT_PNG, FORMAT_GIF, FORMAT_ICO, FORMAT_ICNS
+from iconmaker.exceptions import ConversionError, ImageError
 
 
 ICONS_TEST_DIR = os.path.join(os.path.dirname(
@@ -36,11 +34,13 @@ class ConverterTests(unittest.TestCase):
         """
         
         with self.assertRaises(Exception):
-            self.converter.convert(FORMAT_ICO, 
-                                 files)
+            self.converter.convert(files, 
+                                   FORMAT_ICO, 
+                                   tempfile.mkstemp('.ico')[1])
         with self.assertRaises(Exception):
-            self.converter.convert(FORMAT_ICNS, 
-                                   files)
+            self.converter.convert(files, 
+                                   FORMAT_ICNS, 
+                                   tempfile.mkstemp('.icns')[1])
     
     
     def assertAllTargetFormatsSucceed(self,
@@ -50,23 +50,23 @@ class ConverterTests(unittest.TestCase):
         :param files: File list to pass to the convert class.
         """
 
-        for format in [FORMAT_ICO, FORMAT_ICNS]:
-            result_path = self.converter.convert(format,
-                                                 files)
+        for target_format, result_path in [(FORMAT_ICO, tempfile.mkstemp('.ico')[1], ), 
+                                           (FORMAT_ICNS, tempfile.mkstemp('.icns')[1], )]:
+            self.converter.convert(files, 
+                                   target_format,
+                                   result_path)
             self.assertTrue(os.path.exists(result_path))
             self.assertTrue(os.path.isfile(result_path))
             self.assertGreater(os.path.getsize(result_path), 0)
 
             # The one who created it has the final word whether
             # everything is OK
-            if format == FORMAT_ICNS:
-                self.assertTrue(
-                subprocess.check_output([
+            if target_format == FORMAT_ICNS:
+                self.assertTrue(subprocess.check_output([
                             self.converter.icns2png,
                             "-l",
                             result_path
-                        ], stderr=subprocess.STDOUT)
-                )
+                        ], stderr=subprocess.STDOUT))
             # simple check to see if it's ICO file
             # from http://en.wikipedia.org/wiki/ICO_(file_format)
             else:
@@ -77,23 +77,25 @@ class ConverterTests(unittest.TestCase):
                     self.assertTrue(unpack(fmt, data))
                     header = unpack(fmt, data)
                     self.assertTrue(header[:2] == (0, 1))
-
-    def test_convert_empty_pnglist(self):
+    
+    
+    def test_convert_empty_image_list(self):
         """Test conversion from an empty source.
         """
         
-        self.assertAllTargetFormatsRaise(Exception, [])
+        self.assertAllTargetFormatsRaise(ValueError, [])
     
     
     def test_convert_invalid_format(self):
         """Test conversion given an invalid target icon format.
         """
         
-        with self.assertRaises(Exception):
+        with self.assertRaises(ConversionError):
             self.converter.convert('foo', [
                     os.path.join(ICONS_TEST_DIR, 'icon16x16.png'),
                     os.path.join(ICONS_TEST_DIR, 'icon32x32.png')
-                ])
+                ], 
+                                   tempfile.mkstemp('.foo')[1])
     
     
     def test_convert_bad_local_pnglist(self):
@@ -122,17 +124,9 @@ class ConverterTests(unittest.TestCase):
         """Test conversion from local source.
         """
         
+        # Test a simple conversion.
         self.assertAllTargetFormatsSucceed([
                 os.path.join(ICONS_TEST_DIR, 'icon16x16.gif'),
-                os.path.join(ICONS_TEST_DIR, 'icon32x32.png')
-            ])
-    
-    
-    def test_convert_local(self):
-        """Test conversion from local source requiring down-scaling.
-        """
-        
-        self.assertAllTargetFormatsSucceed([
                 os.path.join(ICONS_TEST_DIR, 'icon32x32.png')
             ])
     

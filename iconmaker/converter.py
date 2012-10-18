@@ -148,17 +148,18 @@ class Converter(object):
                     self.converttool)
     
     
-    def convert(self,
-                target_format,
-                image_list):
+    def convert(self, 
+                image_list, 
+                target_format, 
+                target_path):
         """Convert a list of image files to an ico/icns file.
-
-        :param target_format:
-            Target format. Must be one of ``FORMAT_ICO`` and ``FORMAT_ICNS``.
+        
         :param image_list:
             List of image files to convert (either local paths or URLs).
-        :returns:
-            the local path to the generated icon file.
+        :param target_format:
+            Target format. Must be one of ``FORMAT_ICO`` and ``FORMAT_ICNS``.
+        :param target_path:
+            Target path of the conversion.
         """
 
         # Validate the input arguments.
@@ -214,14 +215,6 @@ class Converter(object):
                                   deeper_filename)
             image_list.append(deeper_filename)
         
-        # Allocate an output file.
-        output_file = tempfile.NamedTemporaryFile(
-                        prefix='output_',
-                        suffix='.%s' % target_format,
-                        dir='/tmp',
-                        delete=False)
-        output_filename = output_file.name
-        
         # Ensure that all image files have sizes compatible with the output 
         # format.
         image_sizes = []
@@ -246,17 +239,20 @@ class Converter(object):
             image_sizes.append(image_size_tuple)
         
         # Execute conversion command.
+        logging.debug('Target path: %r' % (target_path))
+        logging.debug('Image list: %r' % (image_list))
+            
         if target_format == FORMAT_ICNS:
             args = [self.png2icns, 
-                    output_filename] + image_list
+                    target_path] + image_list
         elif target_format == FORMAT_ICO:
-            args = [self.converttool] + image_list + [output_filename]
+            args = [self.converttool] + image_list + [target_path]
+        
+        logging.debug('Conversion call arguments: %r' % (args))
+        logging.debug('Conversion call: %s' % (' '.join(['"%s"' % (a) if ' ' in a else a for a in args])))
         
         try:
             subprocess.check_output(args, 
                                     stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
-            logging.debug('Conversion call: %s' % (' '.join(['"%s"' % (a) if ' ' in a else a for a in args])))
             raise ConversionError('Failed to create container icon: %s' % (e.output))
-        
-        return output_filename

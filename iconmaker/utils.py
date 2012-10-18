@@ -25,7 +25,7 @@ def get_image_size(path):
 
     im = Image.open(path)
     if im.size[0] != im.size[1]:
-        raise Exception('width is not the same as height.')
+        raise ImageError('width is not the same as height: %s:%d', path, im.size[0])
 
     return im.size[0]
 

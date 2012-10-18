@@ -207,13 +207,20 @@ class Converter(object):
         # todo: compile Jasper libs to support 512 and 1024 icons
 
         # cache image size
+        # returns {'/tmp/output1.png':16, '/tmp/output2.png':32, ['/tmp/output3.png':32], ... }
         image_dict = get_image_sizes(image_list)
+
+        # there're duplicate icons for the same iconid,
+        # let's filter them out (png2icns doesnt like it)
+        image_dict_reversed = dict((v, k) for k, v in image_dict.iteritems())
+        image_list = image_dict_reversed.values()
+        image_dict = dict((v, k) for k, v in image_dict_reversed.iteritems())
 
         # sort by size descending, and get the largest image path
         largest_image = sorted(image_dict.items(),
                                 key=lambda x: x[1],
                                 reverse=True)[0][0]
-        
+
         existing_sizes = sorted(image_dict.values(), reverse=True)
 
         largest_size = existing_sizes[0]
@@ -264,7 +271,7 @@ class Converter(object):
             image_list = [i for i in image_list if
                             image_dict[i] % 8 == 0 and
                             image_dict[i] < 256]
-        
+
         # builds args for the conversion command
         logging.debug('image list: %s' % image_list)
         args = image_list

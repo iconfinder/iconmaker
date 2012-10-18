@@ -5,7 +5,7 @@ try:
 except:
     from StringIO import StringIO
 
-from utils import get_image_sizes, which, image_mode_to_bit_depth
+from utils import check_and_get_image_sizes, which, image_mode_to_bit_depth
 from logger import logging
 from exceptions import ConversionError, ImageError
 from PIL import Image
@@ -213,9 +213,10 @@ class Converter(object):
         # (2) above
         # todo: compile Jasper libs to support 512 and 1024 icons
 
-        # cache image size
+        # cache image size and filter out images where width does not equal to height
+        # raises ImageError if we don't have any valid sized images
         # returns {'/tmp/output1.png':16, '/tmp/output2.png':32, ['/tmp/output3.png':32], ... }
-        image_dict = get_image_sizes(image_list)
+        image_dict = check_and_get_image_sizes(image_list)
 
         # there're duplicate icons for the same iconid,
         # let's filter them out (png2icns doesnt like it)
@@ -280,7 +281,6 @@ class Converter(object):
                             image_dict[i] < 256]
 
         # builds args for the conversion command
-        logging.debug('image list: %s' % image_list)
         args = image_list
         args.insert(0, output_filename)
         args.insert(0, conversion_binary)
@@ -290,6 +290,7 @@ class Converter(object):
             subprocess.check_output(args, 
                                     stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
+            logging.debug('args: %s' % args)
             raise ConversionError('Failed to create container icon: %s' % (e.output))
 
         return output_filename

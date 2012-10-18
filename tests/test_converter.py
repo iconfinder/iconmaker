@@ -16,7 +16,7 @@ from iconmaker import Converter, FORMAT_PNG, FORMAT_GIF, FORMAT_ICO, FORMAT_ICNS
 ICONS_TEST_DIR = os.path.join(os.path.dirname(
                                 os.path.abspath(__file__)),
                                 'icons')
-RANDOM_ICONSETS = 50
+RANDOM_ICONSETS = 10
 
 class ConverterTests(unittest.TestCase):
     """Unit tests for various conversion operations.

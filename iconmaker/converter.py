@@ -14,6 +14,9 @@ FORMAT_PNG = 'png'
 FORMAT_GIF = 'gif'
 FORMAT_ICO = 'ico'
 FORMAT_ICNS = 'icns'
+SUPPORTED_SIZES_ICNS = [16, 32, 48, 128, 256, 512, 1024]
+
+
 
 
 def is_size_convertible_to_icon(size_width, 
@@ -95,7 +98,40 @@ class Converter(object):
 
         im.save(saved_filename)
         return saved_filename
-    
+
+    def resize_image(self,
+                     image_path,
+                     image_width,
+                     image_height,
+                     image_format,
+                     transparency):
+
+        logging.debug('Args %r:%r' % (image_width, image_height))
+
+        resized_file = tempfile.NamedTemporaryFile(
+                    prefix='resized_',
+                    suffix='.' + image_format,
+                    delete=False)
+        resized_path = resized_file.name
+
+        if transparency:
+            args_string = "%s %s -gravity center -background transparent -extent %dx%d %s" % \
+                (self.converttool, image_path, image_width, image_height, resized_path)
+        else:
+            args_string = "%s -convert %s %dx%d %s" % \
+                (self.converttool, image_path, image_width, image_height, resized_path)
+
+        args = args_string.split(' ')
+
+        logging.debug('Converting to next largest icon: %s to %s', image_path, resized_path)
+        logging.debug('Conversion call arguments: %r' % (args))
+        try:
+            subprocess.check_output(args,
+                                    stderr = subprocess.STDOUT)
+        except subprocess.CalledProcessError, e:
+            raise ConversionError('Failed to convert image to the next largest size: %s' % (e.output))
+
+        return resized_path        
     
     def convert_to_png32(self, 
                          source_path, 
@@ -215,29 +251,76 @@ class Converter(object):
                                   deeper_filename)
             image_list.append(deeper_filename)
         
-        # Ensure that all image files have sizes compatible with the output 
+        # Ensure that all image files have sizes compatible with the output
         # format.
-        image_sizes = []
+        # If they don't, we do our best job of correcting the wrongly-sized icons
         
+        image_dict = {}
         for image_path in image_list:
-            image = Image.open(image_path)
-            
-            if not is_size_convertible_to_icon(image.size[0], 
-                                               image.size[1], 
+            sizes = Image.open(image_path).size
+            if not sizes in image_dict:
+                image_dict[sizes] = image_path
+
+        image_list = []
+        for (image_size, image_path) in image_dict.iteritems():
+            (image_width, image_height) = image_size
+
+            resized_path = ''
+            if not is_size_convertible_to_icon(image_width,
+                                               image_height,
                                                target_format):
-                raise ImageError('size of image %s (%d x %d) is incompatible with target format FORMAT_%s' % \
-                                     (image_path, 
-                                      image.size[0], 
-                                      image.size[1], 
-                                      target_format.upper()))
-            
-            image_size_tuple = (image.size[0], image.size[1], )
-            if image_size_tuple in image_sizes:
-                raise ImageError('multiple images of size %d x %d supplied' % \
-                                     (image.size[0], 
-                                      image.size[1]))
-            image_sizes.append(image_size_tuple)
-        
+
+                if target_format == FORMAT_ICNS:
+                    # remove the image, and possibly regenerate it
+                    if image_width != image_height:
+                        max_size = max(image_width, max_height)
+                        image_width = image_height = max_size
+
+                        # the corrected size doesn't already exist
+                        if not (image_width, image_height) in image_dict:
+                            resized_path = self.resize_image(image_path,
+                                                           image_width,
+                                                           image_height,
+                                                           target_format,
+                                                           False)
+
+                    # remove the image, and possibly regenerate it
+                    if image_width not in SUPPORTED_SIZES_ICNS:
+                        # get the closest size
+                        closest = min(enumerate(SUPPORTED_SIZES_ICNS), key=lambda x: abs(x[1] - image_width))[1]
+
+                        image_width = image_height = closest
+
+                        # the corrected size doesn't already exist
+                        if not (image_width, image_height) in image_dict:
+                            resized_path = self.resize_image(image_path,
+                                                           image_width,
+                                                           image_height,
+                                                           target_format,
+                                                           True)
+
+                if target_format == FORMAT_ICO:
+                    if ((size_width < 1) or
+                        (size_width > 256) or
+                        (size_height < 1) or
+                        (size_height > 256)):
+
+                        image_width = image_height = 256
+
+                        if not (image_width, image_height) in image_dict:
+                            resized_path = self.resize_image(image_path,
+                                                           image_width,
+                                                           image_height,
+                                                           target_format,
+                                                           True)
+                            
+                if resized_path:
+                    image_list.append(resized_path)
+
+            else:
+                image_list.append(image_path)
+
+
         # Execute conversion command.
         logging.debug('Target path: %r' % (target_path))
         logging.debug('Image list: %r' % (image_list))
@@ -255,4 +338,4 @@ class Converter(object):
             subprocess.check_output(args, 
                                     stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
-            raise ConversionError('Failed to create container icon: %s' % (e.output))
+            raise ConversionError('Failed to create container icon: %s: %s' % (target_format, e.output))

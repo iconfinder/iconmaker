@@ -19,6 +19,7 @@ SUPPORTED_SIZES_ICNS = [16, 32, 48, 128, 256, 512, 1024]
 
 
 
+
 def is_size_convertible_to_icon(size_width, 
                                 size_height, 
                                 target_format):
@@ -105,8 +106,18 @@ class Converter(object):
                      image_height,
                      image_format,
                      transparency):
+        """Resize image.
 
-        logging.debug('Args %r:%r' % (image_width, image_height))
+        :param image_path: Path to the source icon.
+        :param image_width: Width of the icon.
+        :param image_height: Height of the icon.
+        :param image_format: Format of the icon.
+        :param target_format: Target icon format.
+        :param transparency: Whether to add transparency or not.
+
+        :returns:
+            The path to the resized image.
+        """
 
         resized_file = tempfile.NamedTemporaryFile(
                     prefix='resized_',
@@ -123,7 +134,6 @@ class Converter(object):
 
         args = args_string.split(' ')
 
-        logging.debug('Converting to next largest icon: %s to %s', image_path, resized_path)
         logging.debug('Conversion call arguments: %r' % (args))
         try:
             subprocess.check_output(args,
@@ -131,10 +141,71 @@ class Converter(object):
         except subprocess.CalledProcessError, e:
             raise ConversionError('Failed to convert image to the next largest size: %s' % (e.output))
 
-        return resized_path        
-    
-    def convert_to_png32(self, 
-                         source_path, 
+        return resized_path
+
+    def fix_image_size(self,
+                       image_dict,
+                       image_path, 
+                       image_width, 
+                       image_height, 
+                       target_format):
+        """Fix image size to the specifications of the target container icon format.
+
+        :param image_dict: Dictionary of sizes and image path mappings.
+        :param image_path: Path to the source icon.
+        :param image_width: Width of the icon.
+        :param image_height: Height of the icon.
+        :param target_format: Target icon format.
+
+        :returns:
+            The path to the fixed image or None.
+        """
+
+        if target_format == FORMAT_ICNS:
+            # remove the image, and possibly regenerate it
+            if image_width != image_height:
+                image_width = image_height = max(image_width, image_height)
+
+                # check if the corrected size doesn't already exist
+                if not (image_width, image_height) in image_dict:
+                    return self.resize_image(image_path,
+                                             image_width,
+                                             image_height,
+                                             target_format,
+                                             False)
+
+            # remove the image, and possibly regenerate it
+            if image_width not in SUPPORTED_SIZES_ICNS:
+                # get the closest supported size
+                closest = min(enumerate(SUPPORTED_SIZES_ICNS), key=lambda x: abs(x[1] - image_width))[1]
+
+                image_width = image_height = closest
+
+                # the corrected size doesn't already exist
+                if not (image_width, image_height) in image_dict:
+                    return self.resize_image(image_path,
+                                             image_width,
+                                             image_height,
+                                             target_format,
+                                             True)
+        elif target_format == FORMAT_ICO:
+            if image_width > 256:
+                image_width = 256
+
+            if image_height > 256:
+                image_height = 256
+
+            if not (image_width, image_height) in image_dict:
+                return self.resize_image(image_path,
+                                         image_width,
+                                         image_height,
+                                         target_format,
+                                         False)
+        return None
+
+
+    def convert_to_png32(self,
+                         source_path,
                          target_path):
         """Convert a source image to a 32 bit PNG image.
     
@@ -265,55 +336,16 @@ class Converter(object):
         for (image_size, image_path) in image_dict.iteritems():
             (image_width, image_height) = image_size
 
-            resized_path = ''
             if not is_size_convertible_to_icon(image_width,
                                                image_height,
                                                target_format):
 
-                if target_format == FORMAT_ICNS:
-                    # remove the image, and possibly regenerate it
-                    if image_width != image_height:
-                        max_size = max(image_width, max_height)
-                        image_width = image_height = max_size
+                resized_path = self.fix_image_size(image_dict,
+                                                   image_path,
+                                                   image_width,
+                                                   image_height,
+                                                   target_format)
 
-                        # the corrected size doesn't already exist
-                        if not (image_width, image_height) in image_dict:
-                            resized_path = self.resize_image(image_path,
-                                                           image_width,
-                                                           image_height,
-                                                           target_format,
-                                                           False)
-
-                    # remove the image, and possibly regenerate it
-                    if image_width not in SUPPORTED_SIZES_ICNS:
-                        # get the closest size
-                        closest = min(enumerate(SUPPORTED_SIZES_ICNS), key=lambda x: abs(x[1] - image_width))[1]
-
-                        image_width = image_height = closest
-
-                        # the corrected size doesn't already exist
-                        if not (image_width, image_height) in image_dict:
-                            resized_path = self.resize_image(image_path,
-                                                           image_width,
-                                                           image_height,
-                                                           target_format,
-                                                           True)
-
-                if target_format == FORMAT_ICO:
-                    if ((size_width < 1) or
-                        (size_width > 256) or
-                        (size_height < 1) or
-                        (size_height > 256)):
-
-                        image_width = image_height = 256
-
-                        if not (image_width, image_height) in image_dict:
-                            resized_path = self.resize_image(image_path,
-                                                           image_width,
-                                                           image_height,
-                                                           target_format,
-                                                           True)
-                            
                 if resized_path:
                     image_list.append(resized_path)
 

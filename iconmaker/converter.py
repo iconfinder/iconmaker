@@ -17,9 +17,6 @@ FORMAT_ICNS = 'icns'
 SUPPORTED_SIZES_ICNS = [16, 32, 48, 128, 256, 512, 1024]
 
 
-
-
-
 def is_size_convertible_to_icon(size_width, 
                                 size_height, 
                                 target_format):
@@ -93,9 +90,10 @@ class Converter(object):
         saved_file = tempfile.NamedTemporaryFile(
                         prefix='downloaded_',
                         suffix='.' + image_format,
-                        dir='/tmp',
                         delete=False)
         saved_filename = saved_file.name
+
+        logging.debug('Fetching image to: %s' % (saved_filename))
 
         im.save(saved_filename)
         return saved_filename
@@ -104,7 +102,6 @@ class Converter(object):
                      image_path,
                      image_width,
                      image_height,
-                     image_format,
                      transparency):
         """Resize image.
 
@@ -121,7 +118,7 @@ class Converter(object):
 
         resized_file = tempfile.NamedTemporaryFile(
                     prefix='resized_',
-                    suffix='.' + image_format,
+                    suffix='.' + os.path.splitext(image_path)[1][1:],
                     delete=False)
         resized_path = resized_file.name
 
@@ -129,25 +126,26 @@ class Converter(object):
             args_string = "%s %s -gravity center -background transparent -extent %dx%d %s" % \
                 (self.converttool, image_path, image_width, image_height, resized_path)
         else:
-            args_string = "%s -convert %s %dx%d %s" % \
+            args_string = "%s %s -resize %dx%d %s" % \
                 (self.converttool, image_path, image_width, image_height, resized_path)
 
         args = args_string.split(' ')
 
         logging.debug('Conversion call arguments: %r' % (args))
+
         try:
             subprocess.check_output(args,
                                     stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
-            raise ConversionError('Failed to convert image to the next largest size: %s' % (e.output))
+            raise ConversionError('Failed to convert image to the next closest size: %s' % (e.output))
 
         return resized_path
 
     def fix_image_size(self,
                        image_dict,
-                       image_path, 
-                       image_width, 
-                       image_height, 
+                       image_path,
+                       image_width,
+                       image_height,
                        target_format):
         """Fix image size to the specifications of the target container icon format.
 
@@ -171,7 +169,6 @@ class Converter(object):
                     return self.resize_image(image_path,
                                              image_width,
                                              image_height,
-                                             target_format,
                                              False)
 
             # remove the image, and possibly regenerate it
@@ -186,7 +183,6 @@ class Converter(object):
                     return self.resize_image(image_path,
                                              image_width,
                                              image_height,
-                                             target_format,
                                              True)
         elif target_format == FORMAT_ICO:
             if image_width > 256:
@@ -199,7 +195,6 @@ class Converter(object):
                 return self.resize_image(image_path,
                                          image_width,
                                          image_height,
-                                         target_format,
                                          False)
         return None
 

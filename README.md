@@ -25,14 +25,7 @@ icnslib (for png to icns conversion):
 	$ make
 	$ sudo make install
 
-png2ico (for png to ico conversion):
-
-	$ wget http://www.winterdrache.de/freeware/png2ico/data/png2ico-src-2002-12-08.tar.gz
-	$ ./configure
-	$ make
-	$ sudo make install
-
-ImageMagick (for gif to png conversion):
+ImageMagick (for GIF to PNG and PNG to ICO conversion):
 
 	$ wget http://www.imagemagick.org/download/ImageMagick.tar.gz
 	$ ./configure

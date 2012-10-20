@@ -156,20 +156,20 @@ class Converter(object):
         :param target_format: Target icon format.
 
         :returns:
-            The path to the fixed image or None if the would be fixed image already exists
+            Path to the fixed image, new width, new size or None if the would be fixed image already exists
         """
 
         image_path_orig = image_path
         if target_format == FORMAT_ICNS:
             # remove the image, and possibly regenerate it
             if image_width != image_height:
-                logging.debug('Non square icon %d:%d -> %d:%d' % (image_width, image_height, max(image_width, image_height), max(image_width, image_height)))
+                logging.debug('Non square icon: %d:%d -> %d:%d' % (image_width, image_height, max(image_width, image_height), max(image_width, image_height)))
 
                 image_width = image_height = max(image_width, image_height)
 
                 # check if the corrected size doesn't already exist
                 if not (image_width, image_height) in image_dict:
-                    logging.debug('Resizing w/transparency: %s' % (image_path,))
+                    logging.debug('Resizing with transparency: %s' % (image_path,))
 
                     image_path = self.resize_image(image_path,
                                                    image_width,
@@ -181,13 +181,13 @@ class Converter(object):
                 # get the closest supported size
                 closest = min(enumerate(SUPPORTED_SIZES_ICNS), key=lambda x: abs(x[1] - image_width))[1]
 
-                logging.debug('Non supported size, adding transparency %d:%d -> %d:%d' % (image_width, image_height, closest, closest))
+                logging.debug('Non supported size, resizing: %d:%d -> %d:%d' % (image_width, image_height, closest, closest))
 
                 image_width = image_height = closest
 
                 # the corrected size doesn't already exist
                 if not (image_width, image_height) in image_dict:
-                    logging.debug('Resizing w/o transparency: %s' % (image_path,))
+                    logging.debug('Resizing without transparency: %s' % (image_path,))
 
                     image_path = self.resize_image(image_path,
                                                    image_width,
@@ -206,7 +206,7 @@ class Converter(object):
                                                image_height,
                                                False)
 
-        return None if image_path_orig == image_path else image_path
+        return None if image_path_orig == image_path else (image_path, image_width, image_height)
 
 
     def convert_to_png32(self,
@@ -338,6 +338,7 @@ class Converter(object):
                 image_dict[sizes] = image_path
 
         image_list = []
+        resized_images = {}
         for (image_size, image_path) in image_dict.iteritems():
             (image_width, image_height) = image_size
 
@@ -345,14 +346,17 @@ class Converter(object):
                                                image_height,
                                                target_format):
 
-                resized_path = self.fix_image_size(image_dict,
-                                                   image_path,
-                                                   image_width,
-                                                   image_height,
-                                                   target_format)
+                fixed_image_tuple = self.fix_image_size(image_dict,
+                                                     image_path,
+                                                     image_width,
+                                                     image_height,
+                                                     target_format)
 
-                if resized_path:
-                    image_list.append(resized_path)
+                if fixed_image_tuple:
+                    (resized_path, resized_width, resized_height) = fixed_image_tuple
+                    if not (resized_width, resized_height) in resized_images:
+                        resized_images[(resized_width, resized_height)] = resized_path
+                        image_list.append(resized_path)
 
             else:
                 image_list.append(image_path)
@@ -363,8 +367,7 @@ class Converter(object):
         logging.debug('Image list: %r' % (image_list))
             
         if target_format == FORMAT_ICNS:
-            args = [self.png2icns, 
-                    target_path] + image_list
+            args = [self.png2icns, target_path] + image_list
         elif target_format == FORMAT_ICO:
             args = [self.converttool] + image_list + [target_path]
         

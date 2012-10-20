@@ -156,34 +156,43 @@ class Converter(object):
         :param target_format: Target icon format.
 
         :returns:
-            The path to the fixed image or None.
+            The path to the fixed image or None if the would be fixed image already exists
         """
 
+        image_path_orig = image_path
         if target_format == FORMAT_ICNS:
             # remove the image, and possibly regenerate it
             if image_width != image_height:
+                logging.debug('Non square icon %d:%d -> %d:%d' % (image_width, image_height, max(image_width, image_height), max(image_width, image_height)))
+
                 image_width = image_height = max(image_width, image_height)
 
                 # check if the corrected size doesn't already exist
                 if not (image_width, image_height) in image_dict:
-                    return self.resize_image(image_path,
-                                             image_width,
-                                             image_height,
-                                             False)
+                    logging.debug('Resizing w/transparency: %s' % (image_path,))
+
+                    image_path = self.resize_image(image_path,
+                                                   image_width,
+                                                   image_height,
+                                                   True)
 
             # remove the image, and possibly regenerate it
             if image_width not in SUPPORTED_SIZES_ICNS:
                 # get the closest supported size
                 closest = min(enumerate(SUPPORTED_SIZES_ICNS), key=lambda x: abs(x[1] - image_width))[1]
 
+                logging.debug('Non supported size, adding transparency %d:%d -> %d:%d' % (image_width, image_height, closest, closest))
+
                 image_width = image_height = closest
 
                 # the corrected size doesn't already exist
                 if not (image_width, image_height) in image_dict:
-                    return self.resize_image(image_path,
-                                             image_width,
-                                             image_height,
-                                             True)
+                    logging.debug('Resizing w/o transparency: %s' % (image_path,))
+
+                    image_path = self.resize_image(image_path,
+                                                   image_width,
+                                                   image_height,
+                                                   False)
         elif target_format == FORMAT_ICO:
             if image_width > 256:
                 image_width = 256
@@ -192,11 +201,12 @@ class Converter(object):
                 image_height = 256
 
             if not (image_width, image_height) in image_dict:
-                return self.resize_image(image_path,
-                                         image_width,
-                                         image_height,
-                                         False)
-        return None
+                image_path = self.resize_image(image_path,
+                                               image_width,
+                                               image_height,
+                                               False)
+
+        return None if image_path_orig == image_path else image_path
 
 
     def convert_to_png32(self,

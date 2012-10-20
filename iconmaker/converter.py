@@ -129,7 +129,7 @@ class Converter(object):
             args_string = "%s %s -resize %dx%d %s" % \
                 (self.converttool, image_path, image_width, image_height, resized_path)
 
-        args = args_string.split(' ')
+        args = args_string.split()
 
         logging.debug('Conversion call arguments: %r' % (args))
 
@@ -194,17 +194,18 @@ class Converter(object):
                                                    image_height,
                                                    False)
         elif target_format == FORMAT_ICO:
-            if image_width > 256:
-                image_width = 256
+            # Downscale but mantain aspect ratio.
+            if image_width > 256 or image_height > 256:
+                max_size = max(image_width, image_height)
+                ratio = max_size / 256
+                image_width = int(image_width / ratio)
+                image_height = int(image_height / ratio)
 
-            if image_height > 256:
-                image_height = 256
-
-            if not (image_width, image_height) in image_dict:
-                image_path = self.resize_image(image_path,
-                                               image_width,
-                                               image_height,
-                                               False)
+                if not (image_width, image_height) in image_dict:
+                    image_path = self.resize_image(image_path,
+                                                   image_width,
+                                                   image_height,
+                                                   False)
 
         return None if image_path_orig == image_path else (image_path, image_width, image_height)
 

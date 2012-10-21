@@ -6,7 +6,6 @@ try:
 except:
     from StringIO import StringIO
 
-# Path hack.
 from iconmaker import Converter, FORMAT_PNG, FORMAT_GIF, FORMAT_ICO, FORMAT_ICNS
 from iconmaker.exceptions import ConversionError, ImageError
 
@@ -14,7 +13,8 @@ from iconmaker.exceptions import ConversionError, ImageError
 ICONS_TEST_DIR = os.path.join(os.path.dirname(
                                 os.path.abspath(__file__)),
                                 'icons')
-RANDOM_ICONSETS = 10
+RANDOM_ICONSETS = 20
+LARGE_ICONSETS = 20
 
 class ConverterTests(unittest.TestCase):
     """Unit tests for various conversion operations.
@@ -129,24 +129,91 @@ class ConverterTests(unittest.TestCase):
                 os.path.join(ICONS_TEST_DIR, 'icon16x16.gif'),
                 os.path.join(ICONS_TEST_DIR, 'icon32x32.png')
             ])
-    
-    
+
     def test_convert_remote(self):
         """Test conversion from remote source.
         """
-        
+
         self.assertAllTargetFormatsSucceed([
                 'http://cdn1.iconfinder.com/data/icons/yooicons_set01_socialbookmarks/16/social_facebook_box_blue.png', 
                 'http://cdn1.iconfinder.com/data/icons/yooicons_set01_socialbookmarks/32/social_facebook_box_blue.png'
             ])
-    
-    
-    def test_iconsets(self):
-        """Test converting iconssets from the db
+
+    def test_large_iconsets(self):
+        """Test converting iconssets from the db (large)
         """
-        
+
         #return
-        
+
+        import mysql.connector
+
+        # connect to the db
+        db = mysql.connector.Connect(host = os.getenv('DB_HOST', 'localhost'), 
+                                     user = os.getenv('DB_USER', 'root'),
+                                     password = os.getenv('DB_PASSWORD', ''),
+                                     database = os.getenv('DB_DATABASE', 'www_iconfinder'))
+        cursor = db.cursor()
+
+        #
+        # get large iconsets where there are atleast 8 size icons for each
+        #
+
+        sqlquery = """
+SELECT
+    i.name, i.iconid, i.newpath
+FROM
+    icondata i
+INNER JOIN
+    (
+        SELECT
+            iconid,
+            count(size)
+        FROM
+            icondata
+        WHERE
+            active = 1 AND
+            sizex IS NOT NULL AND
+            sizey IS NOT NULL
+        GROUP BY
+            iconid
+        HAVING
+            count(distinct(size)) > 8
+        LIMIT %s
+    ) i2
+ON i.iconid = i2.iconid
+WHERE
+    active = 1 AND
+    sizex IS NOT NULL AND
+    sizey IS NOT NULL
+ORDER BY
+    i.iconid, i.size""" % LARGE_ICONSETS
+
+        cursor.execute(sqlquery)
+
+        rows = cursor.fetchall()
+        cursor.close()
+        db.close()
+
+        # create dict populated with
+        #   key (collection name) -> values (list containing urls)
+        iconsets = {}
+        for row in rows:
+            (name, iconid, newpath) = row
+            iconsets.setdefault(
+                name,
+                []).append("http://cdn1.iconfinder.com/data/icons/%s%s" %
+                    (newpath, name))
+
+        # cycle through the collections and test them out
+        for iconset in iconsets.values():
+            self.assertAllTargetFormatsSucceed(iconset)
+
+    def test_random_iconsets(self):
+        """Test converting iconssets from the db (random)
+        """
+
+        #return
+
         # generate a list of icons to test
         import mysql.connector
 
@@ -156,14 +223,15 @@ class ConverterTests(unittest.TestCase):
                                      password = os.getenv('DB_PASSWORD', ''),
                                      database = os.getenv('DB_DATABASE', 'www_iconfinder'))
         cursor = db.cursor()
-        
+
         # get N random iconsets
         # using 1, 1000 inclusive for iconid
         import random
         random_iconsets = [random.randint(1, 1000) for r in
                             xrange(RANDOM_ICONSETS)]
 
-        cursor.execute("""SELECT
+        sql_query = """
+SELECT
     name,
     iconid,
     newpath
@@ -175,8 +243,10 @@ WHERE
     sizey IS NOT NULL AND
     iconid IN (%s)
 ORDER BY
-    iconid""" % ','.join([str(i) for i in random_iconsets]))
-        
+    iconid""" % ','.join([str(i) for i in random_iconsets])
+
+        cursor.execute(sql_query)
+
         rows = cursor.fetchall()
         cursor.close()
         db.close()

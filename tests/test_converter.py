@@ -28,9 +28,9 @@ class ConverterTests(unittest.TestCase):
 
         # connect to the db
         self.db = mysql.connector.Connect(host = os.getenv('DB_HOST', 'localhost'),
-                                     user = os.getenv('DB_USER', 'root'),
-                                     password = os.getenv('DB_PASSWORD', ''),
-                                     database = os.getenv('DB_DATABASE', 'www_iconfinder'))
+                                          user = os.getenv('DB_USER', 'root'),
+                                          password = os.getenv('DB_PASSWORD', ''),
+                                          database = os.getenv('DB_DATABASE', 'www_iconfinder'))
         self.cursor = self.db.cursor()
 
     def tearDown(self):
@@ -131,7 +131,6 @@ class ConverterTests(unittest.TestCase):
         """Test conversion from local source.
         """
 
-        # Test a simple conversion.
         self.assertAllTargetFormatsSucceed([
                 os.path.join(ICONS_TEST_DIR, 'icon16x16.gif'),
                 os.path.join(ICONS_TEST_DIR, 'icon32x32.png')
@@ -144,6 +143,20 @@ class ConverterTests(unittest.TestCase):
         self.assertAllTargetFormatsSucceed([
                 'http://cdn1.iconfinder.com/data/icons/yooicons_set01_socialbookmarks/16/social_facebook_box_blue.png', 
                 'http://cdn1.iconfinder.com/data/icons/yooicons_set01_socialbookmarks/32/social_facebook_box_blue.png'
+            ])
+
+    def test_convert_MAS_iconset(self):
+        """Test conversion of a complete MAS (Mac App Store) iconset.
+        """
+
+        self.assertAllTargetFormatsSucceed([
+                os.path.join(ICONS_TEST_DIR, 'ttp/icon16x16.png'),
+                os.path.join(ICONS_TEST_DIR, 'ttp/icon32x32.png'),
+                os.path.join(ICONS_TEST_DIR, 'ttp/icon64x64.png'),
+                os.path.join(ICONS_TEST_DIR, 'ttp/icon128x128.png'),
+                os.path.join(ICONS_TEST_DIR, 'ttp/icon256x256.png'),
+                os.path.join(ICONS_TEST_DIR, 'ttp/icon512x512.png'),
+                os.path.join(ICONS_TEST_DIR, 'ttp/icon1024x1024.png'),
             ])
 
     def test_large_iconsets(self):

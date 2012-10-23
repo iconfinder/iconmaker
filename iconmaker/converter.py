@@ -95,7 +95,7 @@ class Converter(object):
                 raise Exception("Unable to locate image conversion tool: %s" %
                     self.converttool)
 
-    def _fetch_image(self, url):
+    def fetch_image(self, url):
         """Fetch the requested image and save it in a temporary file.
 
         :params input: URL of the image to fetch.
@@ -200,11 +200,19 @@ class Converter(object):
         resized_path = resized_file.name
 
         if transparency:
-            args_string = "%s %s -gravity center -background transparent -extent %dx%d %s" % \
-                (self.converttool, image_path, image_width, image_height, resized_path)
+            args_string = "%s %s -gravity center -background transparent " \
+                            "-extent %dx%d %s" % (self.converttool,
+                                        image_path,
+                                        image_width,
+                                        image_height,
+                                        resized_path)
         else:
-            args_string = "%s %s -resize %dx%d %s" % \
-                (self.converttool, image_path, image_width, image_height, resized_path)
+            args_string = "%s %s -resize %dx%d %s" % (
+                                        self.converttool,
+                                        image_path,
+                                        image_width,
+                                        image_height,
+                                        resized_path)
 
         args = args_string.split()
 
@@ -214,7 +222,8 @@ class Converter(object):
             subprocess.check_output(args,
                                     stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
-            raise ConversionError('Failed to convert image to the next closest size: %s' % (e.output))
+            raise ConversionError('Failed to convert image to the next closest size: %s' % (
+                e.output))
 
         return resized_path
 
@@ -260,13 +269,13 @@ class Converter(object):
             # remove the image, and possibly regenerate it
             if image_width not in SUPPORTED_SIZES_ICNS:
                 # get the closest supported size
-                closest = min(enumerate(SUPPORTED_SIZES_ICNS), 
+                closest = min(enumerate(SUPPORTED_SIZES_ICNS),
                     key=lambda x: abs(x[1] - image_width))[1]
 
                 logging.debug('Non supported size, resizing: %d:%d -> %d:%d' % (
-                    image_width, 
-                    image_height, 
-                    closest, 
+                    image_width,
+                    image_height,
+                    closest,
                     closest))
 
                 image_width = image_height = closest
@@ -303,7 +312,7 @@ class Converter(object):
                          source_path,
                          target_path):
         """Convert a source image to a 32 bit PNG image.
-    
+
         :param source_path: Path of the source image.
         :param target_path: Path of the target image.
         :raises ConversionError: if conversion fails.
@@ -327,7 +336,7 @@ class Converter(object):
                 target_format, 
                 target_path):
         """Convert a list of image files to an ico/icns file.
-        
+
         :param image_list:
             List of image files to convert (either local paths or URLs).
         :param target_format:
@@ -349,7 +358,16 @@ class Converter(object):
         for image_location in image_list:
             if ((image_location.startswith("http:")) or
                 (image_location.startswith("https:"))):
-                image_location = self._fetch_image(image_location)
+
+                # skip invalid/corrupt URLs
+                try:
+                    image_location = self.fetch_image(image_location)
+                except requests.exceptions.HTTPError, e:
+                    logging.debug('Could not retrieve image: %s', str(e))
+                    continue
+                except ImageError, e:
+                    logging.debug('Could not save image: %s', str(e))
+                    continue
 
             # Check the extension to see if we'll need to convert something
             # else to PNG.
@@ -357,7 +375,8 @@ class Converter(object):
             image_extension = image_extension[1:]
 
             if image_extension == FORMAT_GIF:
-                logging.debug('converting input GIF image to 32-bit PNG: %s' % (image_location))
+                logging.debug('converting input GIF image to 32-bit PNG: %s' % (
+                    image_location))
                 image_location_png = "%s.%s" % (image_base, FORMAT_PNG)
                 self.convert_to_png32(image_location, 
                                       image_location_png)
@@ -392,7 +411,6 @@ class Converter(object):
         # Ensure that all image files have sizes compatible with the output
         # format.
         # If they don't, we do our best job of correcting the wrongly-sized icons
-        
         image_dict = {}
         for image_path in image_list:
             sizes = Image.open(image_path).size

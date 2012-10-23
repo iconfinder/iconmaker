@@ -112,7 +112,8 @@ class Converter(object):
         im = Image.open(StringIO(response.content))
         image_format = im.format.lower()
         if image_format not in Converter.SUPPORTED_SOURCE_FORMATS:
-            raise ImageError('The source file is not of a supported format. Supported formats are: %s' % (
+            raise ImageError('The source file is not of a supported format.'
+                'Supported formats are: %s' % (
                 ', '.join(Converter.SUPPORTED_SOURCE_FORMATS)))
 
         # generate temp filename for it
@@ -124,7 +125,11 @@ class Converter(object):
 
         logging.debug('Fetching image to: %s' % (saved_filename))
 
-        im.save(saved_filename)
+        try:
+            im.save(saved_filename)
+        except:
+            raise ImageError('Error saving image: %s' % (url))
+
         return saved_filename
 
     def verify_generated_icon(self,

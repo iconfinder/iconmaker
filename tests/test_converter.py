@@ -27,10 +27,11 @@ class ConverterTests(unittest.TestCase):
         self.converter = Converter()
 
         # connect to the db
-        self.db = mysql.connector.Connect(host = os.getenv('DB_HOST', 'localhost'),
-                                          user = os.getenv('DB_USER', 'root'),
-                                          password = os.getenv('DB_PASSWORD', ''),
-                                          database = os.getenv('DB_DATABASE', 'www_iconfinder'))
+        self.db = mysql.connector.Connect(
+            host = os.getenv('DB_HOST', 'localhost'),
+            user = os.getenv('DB_USER', 'root'),
+            password = os.getenv('DB_PASSWORD', ''),
+            database = os.getenv('DB_DATABASE', 'www_iconfinder'))
         self.cursor = self.db.cursor()
 
     def tearDown(self):
@@ -62,9 +63,9 @@ class ConverterTests(unittest.TestCase):
         :param files: File list to pass to the convert class.
         """
 
-        for target_format, result_path in [(FORMAT_ICO, tempfile.mkstemp('.ico')[1], ), 
+        for target_format, result_path in [(FORMAT_ICO, tempfile.mkstemp('.ico')[1], ),
                                            (FORMAT_ICNS, tempfile.mkstemp('.icns')[1], )]:
-            self.converter.convert(files, 
+            self.converter.convert(files,
                                    target_format,
                                    result_path)
             self.assertTrue(os.path.exists(result_path))

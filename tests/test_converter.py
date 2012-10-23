@@ -15,8 +15,8 @@ from iconmaker.exceptions import ConversionError, ImageError
 ICONS_TEST_DIR = os.path.join(os.path.dirname(
                                 os.path.abspath(__file__)),
                                 'icons')
-RANDOM_ICONSETS = 20
-LARGE_ICONSETS = 20
+RANDOM_ICONSETS = 10
+LARGE_ICONSETS = 10
 
 
 class ConverterTests(unittest.TestCase):
@@ -71,24 +71,9 @@ class ConverterTests(unittest.TestCase):
             self.assertTrue(os.path.isfile(result_path))
             self.assertGreater(os.path.getsize(result_path), 0)
 
-            # The one who created it has the final word whether
-            # everything is OK
-            if target_format == FORMAT_ICNS:
-                self.assertTrue(subprocess.check_output([
-                            self.converter.icns2png,
-                            "-l",
-                            result_path
-                        ], stderr=subprocess.STDOUT))
-            # simple check to see if it's ICO file
-            # from http://en.wikipedia.org/wiki/ICO_(file_format)
-            else:
-                with open(result_path, 'rb') as f:
-                    # header is 6 bytes
-                    data = f.read(6)
-                    fmt = '<3H' if sys.byteorder == 'little' else '>3H'
-                    self.assertTrue(unpack(fmt, data))
-                    header = unpack(fmt, data)
-                    self.assertTrue(header[:2] == (0, 1))
+            # deep icon validation (i.e., check the header values)
+            self.assertTrue(self.converter.verify_generated_icon(target_format,
+                result_path))
 
     def test_convert_empty_image_list(self):
         """Test conversion from an empty source.
@@ -125,6 +110,14 @@ class ConverterTests(unittest.TestCase):
                 'http://localhost:62010/www/icon16x16.png',
                 'http://localhost:62010/www/foo.png',
                 'http://localhost:62010/www/icon32x32.png'
+            ])
+
+    def test_convert_bad_png(self):
+        """Test conversion of a 'bad' png.
+        """
+
+        self.assertAllTargetFormatsSucceed([
+                os.path.join(ICONS_TEST_DIR, 'bad.png')
             ])
 
     def test_convert_local(self):

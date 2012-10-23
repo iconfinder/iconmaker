@@ -1,4 +1,4 @@
-import subprocess, os, tempfile, requests
+import subprocess, os, tempfile, requests, struct
 
 try:
     from cStringIO import StringIO
@@ -65,7 +65,35 @@ class Converter(object):
                                 FORMAT_ICNS]
     """Supported target icon container formats.
     """
-    
+
+    def __init__(self):
+        """Initializer.
+        """
+
+        Converter.SUPPORTED_SOURCE_FORMATS = [FORMAT_GIF, FORMAT_PNG]
+        Converter.SUPPORTED_TARGET_FORMATS = [FORMAT_ICO, FORMAT_ICNS]
+        self.png2icns = '/usr/local/bin/png2icns'
+        self.icns2png = '/usr/local/bin/icns2png'
+        self.converttool = '/opt/local/bin/convert'
+
+        # check and/or find the correct file locations
+        if not os.path.isfile(self.png2icns):
+            self.png2icns = which(os.path.basename(self.png2icns))
+            if not self.png2icns:
+                raise Exception("Unable to locate png2icns binary: %s" %
+                    self.png2icns)
+
+        if not os.path.isfile(self.icns2png):
+            self.icns2png = which(os.path.basename(self.icns2png))
+            if not self.icns2png:
+                raise Exception("Unable to locate icns2png binary: %s" %
+                    self.icns2png)
+
+        if not os.path.isfile(self.converttool):
+            self.converttool = which(os.path.basename(self.converttool))
+            if not self.converttool:
+                raise Exception("Unable to locate image conversion tool: %s" %
+                    self.converttool)
 
     def _fetch_image(self, url):
         """Fetch the requested image and save it in a temporary file.
@@ -84,7 +112,8 @@ class Converter(object):
         im = Image.open(StringIO(response.content))
         image_format = im.format.lower()
         if image_format not in Converter.SUPPORTED_SOURCE_FORMATS:
-            raise ImageError('The source file is not of a supported format. Supported formats are: %s' % (', '.join(Converter.SUPPORTED_SOURCE_FORMATS)))
+            raise ImageError('The source file is not of a supported format. Supported formats are: %s' % (
+                ', '.join(Converter.SUPPORTED_SOURCE_FORMATS)))
 
         # generate temp filename for it
         saved_file = tempfile.NamedTemporaryFile(
@@ -97,6 +126,42 @@ class Converter(object):
 
         im.save(saved_filename)
         return saved_filename
+
+    def verify_generated_icon(self,
+                              target_format,
+                              result_path):
+        """Verify the target (ICO or ICNS) image.
+
+        :param target_format: Target icon format.
+        :param result_path: Path to the generated icon.
+
+        :returns:
+            True if a valid icon or False otherwise
+        """
+        # The one who created it has the final word whether
+        # everything is OK
+        if target_format == FORMAT_ICNS:
+            with open(os.devnull) as f:
+                retcode = subprocess.call([
+                            self.icns2png,
+                            "-l",
+                            result_path
+                        ], stdout=f,
+                           stderr=f)
+            return retcode == 0
+
+        # simple check to see if it's ICO file
+        # from http://en.wikipedia.org/wiki/ICO_(file_format)
+        else:
+            with open(result_path, 'rb') as f:
+                data = f.read(6)
+                if len(data) != 6:
+                    return False
+                header = struct.unpack('<3H', data)
+                if header[:2] != (0, 1):
+                    return False
+
+            return True
 
     def resize_image(self,
                      image_path,
@@ -163,7 +228,11 @@ class Converter(object):
         if target_format == FORMAT_ICNS:
             # remove the image, and possibly regenerate it
             if image_width != image_height:
-                logging.debug('Non square icon: %d:%d -> %d:%d' % (image_width, image_height, max(image_width, image_height), max(image_width, image_height)))
+                logging.debug('Non square icon: %d:%d -> %d:%d' % (
+                    image_width, 
+                    image_height, 
+                    max(image_width, image_height), 
+                    max(image_width, image_height)))
 
                 image_width = image_height = max(image_width, image_height)
 
@@ -179,9 +248,14 @@ class Converter(object):
             # remove the image, and possibly regenerate it
             if image_width not in SUPPORTED_SIZES_ICNS:
                 # get the closest supported size
-                closest = min(enumerate(SUPPORTED_SIZES_ICNS), key=lambda x: abs(x[1] - image_width))[1]
+                closest = min(enumerate(SUPPORTED_SIZES_ICNS), 
+                    key=lambda x: abs(x[1] - image_width))[1]
 
-                logging.debug('Non supported size, resizing: %d:%d -> %d:%d' % (image_width, image_height, closest, closest))
+                logging.debug('Non supported size, resizing: %d:%d -> %d:%d' % (
+                    image_width, 
+                    image_height, 
+                    closest, 
+                    closest))
 
                 image_width = image_height = closest
 
@@ -207,7 +281,10 @@ class Converter(object):
                                                    image_height,
                                                    False)
 
-        return None if image_path_orig == image_path else (image_path, image_width, image_height)
+        if image_path_orig == image_path:
+            return None
+        else:
+            return (image_path, image_width, image_height)
 
 
     def convert_to_png32(self,
@@ -219,7 +296,9 @@ class Converter(object):
         :param target_path: Path of the target image.
         :raises ConversionError: if conversion fails.
         """
-        
+
+        logging.debug('Converting input image to 32-bit PNG: %s -> %s' % (
+            source_path, target_path))
         # Perform the conversion.
         try:
             subprocess.check_output([
@@ -228,39 +307,9 @@ class Converter(object):
                     'png32:%s' % (target_path)
                 ], stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
-            raise ConversionError('failed to convert input file to 32-bit PNG: %s' % (e.output))
-    
-    
-    def __init__(self):
-        """Initializer.
-        """
+            raise ConversionError('Failed to convert input file to 32-bit PNG: %s' % (
+                e.output))
 
-        Converter.SUPPORTED_SOURCE_FORMATS = [FORMAT_GIF, FORMAT_PNG]
-        Converter.SUPPORTED_TARGET_FORMATS = [FORMAT_ICO, FORMAT_ICNS]
-        self.png2icns = '/usr/local/bin/png2icns'
-        self.icns2png = '/usr/local/bin/icns2png'
-        self.converttool = '/opt/local/bin/convert'
-
-        # check and/or find the correct file locations
-        if not os.path.isfile(self.png2icns):
-            self.png2icns = which(os.path.basename(self.png2icns))
-            if not self.png2icns:
-                raise Exception("Unable to locate png2icns binary: %s" %
-                    self.png2icns)
-
-        if not os.path.isfile(self.icns2png):
-            self.icns2png = which(os.path.basename(self.icns2png))
-            if not self.icns2png:
-                raise Exception("Unable to locate icns2png binary: %s" %
-                    self.icns2png)
-
-        if not os.path.isfile(self.converttool):
-            self.converttool = which(os.path.basename(self.converttool))
-            if not self.converttool:
-                raise Exception("Unable to locate image conversion tool: %s" %
-                    self.converttool)
-    
-    
     def convert(self, 
                 image_list, 
                 target_format, 
@@ -373,10 +422,13 @@ class Converter(object):
             args = [self.converttool] + image_list + [target_path]
         
         logging.debug('Conversion call arguments: %r' % (args))
-        logging.debug('Conversion call: %s' % (' '.join(['"%s"' % (a) if ' ' in a else a for a in args])))
+        logging.debug('Conversion call: %s' % (
+            ' '.join(['"%s"' % (a) if ' ' in a else a for a in args])))
         
         try:
             subprocess.check_output(args, 
                                     stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
-            raise ConversionError('Failed to create container icon: %s: %s' % (target_format, e.output))
+            if not self.verify_generated_icon(target_format, target_path):
+                raise ConversionError('Failed to create container icon: %s: %s' % (
+                    target_format, e.output))

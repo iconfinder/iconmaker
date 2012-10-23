@@ -143,30 +143,37 @@ class Converter(object):
         :returns:
             True if a valid icon or False otherwise
         """
-        # The one who created it has the final word whether
-        # everything is OK
+        # simple check to see if it's a valid ICNS file
+        # from http://en.wikipedia.org/wiki/Apple_Icon_Image_format
         if target_format == FORMAT_ICNS:
-            with open(os.devnull) as f:
-                retcode = subprocess.call([
-                            self.icns2png,
-                            "-l",
-                            result_path
-                        ], stdout=f,
-                           stderr=f)
-            return retcode == 0
+            with open(result_path, 'rb') as f:
+                # parse header section (8 bytes)
+                header = f.read(8)
+                if len(header) != 8:
+                    return False
 
-        # simple check to see if it's ICO file
+                header_unpacked = struct.unpack('>4BI', header)
+                header_type = ''.join([chr(i) for i in header_unpacked[0:4]])
+                if header_type != 'icns' or header_unpacked[4] <= 0:
+                    return False
+
+                return True
+
+        # simple check to see if it's a valid ICO file
         # from http://en.wikipedia.org/wiki/ICO_(file_format)
-        else:
+        elif target_format == FORMAT_ICO:
             with open(result_path, 'rb') as f:
                 data = f.read(6)
                 if len(data) != 6:
                     return False
+
                 header = struct.unpack('<3H', data)
                 if header[:2] != (0, 1):
                     return False
 
-            return True
+                return True
+
+        return False
 
     def resize_image(self,
                      image_path,
@@ -332,19 +339,19 @@ class Converter(object):
         # Validate the input arguments.
         if target_format not in Converter.SUPPORTED_TARGET_FORMATS:
             raise ConversionError('invalid target format identifier: %s' % (target_format))
-        
+
         if len(image_list) == 0:
             raise ValueError('image input list cannot be empty')
-        
+
         # Make sure that all input files are stored locally and as PNGs.
         # image_list can contain either a local path or an http url
         local_image_list = []
         for image_location in image_list:
-            if ((image_location.startswith("http:")) or 
+            if ((image_location.startswith("http:")) or
                 (image_location.startswith("https:"))):
                 image_location = self._fetch_image(image_location)
-            
-            # Check the extension to see if we'll need to convert something 
+
+            # Check the extension to see if we'll need to convert something
             # else to PNG.
             image_base, image_extension = os.path.splitext(image_location)
             image_extension = image_extension[1:]

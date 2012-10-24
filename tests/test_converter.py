@@ -17,6 +17,8 @@ ICONS_TEST_DIR = os.path.join(os.path.dirname(
                                 'icons')
 RANDOM_ICONSETS = 10
 LARGE_ICONSETS = 10
+NONSQUARE_ICONSETS = 10
+INVALID_ICNS_ICONSETS = 10
 
 
 class ConverterTests(unittest.TestCase):
@@ -153,6 +155,104 @@ class ConverterTests(unittest.TestCase):
                 os.path.join(ICONS_TEST_DIR, 'ttp/icon1024x1024.png'),
             ])
 
+    def execute_sql_query(self, sqlquery):
+        self.cursor.execute(sqlquery)
+        rows = self.cursor.fetchall()
+
+        # create dict populated with
+        #   key (collection name) -> values (list containing urls)
+        iconsets = {}
+        for row in rows:
+            (name, iconid, newpath) = row
+            iconsets.setdefault(
+                name,
+                []).append("http://cdn1.iconfinder.com/data/icons/%s%s" %
+                    (newpath, name))
+
+        # cycle through the collections and test them out
+        for iconset in iconsets.values():
+            self.assertAllTargetFormatsSucceed(iconset)
+
+    def test_invalid_icns_size_iconsets(self):
+        """Test conversion of invalid sized ICNS iconssets from the db.
+        """
+
+        #return
+
+        # Get nonsquare iconsets
+        sqlquery = """
+SELECT
+    i.name, i.iconid, i.newpath
+FROM
+    icondata i
+INNER JOIN
+    (
+        SELECT
+            iconid,
+            count(size)
+        FROM
+            icondata
+        WHERE
+            active = 1 AND
+            sizex IS NOT NULL AND
+            sizey IS NOT NULL AND
+            sizex = sizey AND
+            sizex NOT IN (16, 32, 48, 64, 128, 256, 512, 1024)
+        GROUP BY
+            iconid
+        LIMIT %s
+    ) i2
+ON i.iconid = i2.iconid
+WHERE
+    active = 1 AND
+    sizex IS NOT NULL AND
+    sizey IS NOT NULL AND
+    sizex = sizey AND
+    sizex NOT IN (16, 32, 48, 64, 128, 256, 512, 1024)
+ORDER BY
+    i.iconid, i.size""" % (INVALID_ICNS_ICONSETS)
+
+        self.execute_sql_query(sqlquery)
+
+    def test_nonsquare_iconsets(self):
+        """Test conversion of non-square iconssets from the db.
+        """
+
+        #return
+
+        # Get nonsquare iconsets
+        sqlquery = """
+SELECT
+    i.name, i.iconid, i.newpath
+FROM
+    icondata i
+INNER JOIN
+    (
+        SELECT
+            iconid,
+            count(size)
+        FROM
+            icondata
+        WHERE
+            active = 1 AND
+            sizex IS NOT NULL AND
+            sizey IS NOT NULL AND
+            sizex <> sizey
+        GROUP BY
+            iconid
+        LIMIT %s
+    ) i2
+ON i.iconid = i2.iconid
+WHERE
+    active = 1 AND
+    sizex IS NOT NULL AND
+    sizey IS NOT NULL AND
+    sizex <> sizey
+ORDER BY
+    i.iconid, i.size""" % (NONSQUARE_ICONSETS)
+
+        self.execute_sql_query(sqlquery)
+
     def test_large_iconsets(self):
         """Test conversion of large iconssets from the db.
         """
@@ -190,22 +290,7 @@ WHERE
 ORDER BY
     i.iconid, i.size""" % (LARGE_ICONSETS,)
 
-        self.cursor.execute(sqlquery)
-        rows = self.cursor.fetchall()
-
-        # create dict populated with
-        #   key (collection name) -> values (list containing urls)
-        iconsets = {}
-        for row in rows:
-            (name, iconid, newpath) = row
-            iconsets.setdefault(
-                name,
-                []).append("http://cdn1.iconfinder.com/data/icons/%s%s" %
-                    (newpath, name))
-
-        # cycle through the collections and test them out
-        for iconset in iconsets.values():
-            self.assertAllTargetFormatsSucceed(iconset)
+        self.execute_sql_query(sqlquery)
 
     def test_random_iconsets(self):
         """Test conversion of random iconssets from the db.
@@ -218,7 +303,7 @@ ORDER BY
         random_iconsets = [random.randint(1, 1000) for r in
                             xrange(RANDOM_ICONSETS)]
 
-        sql_query = """
+        sqlquery = """
 SELECT
     name,
     iconid,
@@ -233,19 +318,4 @@ WHERE
 ORDER BY
     iconid""" % ','.join([str(i) for i in random_iconsets])
 
-        self.cursor.execute(sql_query)
-        rows = self.cursor.fetchall()
-
-        # create dict populated with
-        #   key (collection name) -> values (list containing urls)
-        iconsets = {}
-        for row in rows:
-            (name, iconid, newpath) = row
-            iconsets.setdefault(
-                name,
-                []).append("http://cdn1.iconfinder.com/data/icons/%s%s" %
-                    (newpath, name))
-
-        # cycle through the collections and test them out
-        for iconset in iconsets.values():
-            self.assertAllTargetFormatsSucceed(iconset)
+        self.execute_sql_query(sqlquery)

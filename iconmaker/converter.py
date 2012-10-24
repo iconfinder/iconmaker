@@ -26,7 +26,7 @@ def is_size_convertible_to_icon(size_width,
     :param size_height: Height of the image.
     :param target_format: Target icon format.
     :returns: 
-        ``True`` if the image can be converted to the given target icon format 
+        ``True`` if the image can be converted to the given target icon format
         otherwise ``False``.
     """
     
@@ -101,8 +101,7 @@ class Converter(object):
 
         :params input: URL of the image to fetch.
         :returns:
-            temporary local file system path of the fetched image with an 
-            extension reflecting the image format.
+            Path of the fetched image.
         """
 
         # Get the image.
@@ -142,9 +141,9 @@ class Converter(object):
         :param result_path: Path to the generated icon.
 
         :returns:
-            True if a valid icon or False otherwise
+            ``True`` if it's a valid icon otherwise ``False``
         """
-        # simple check to see if it's a valid ICNS file
+        # Simple check to see if it's a valid ICNS file
         # from http://en.wikipedia.org/wiki/Apple_Icon_Image_format
         if target_format == FORMAT_ICNS:
             with open(result_path, 'rb') as f:
@@ -160,16 +159,16 @@ class Converter(object):
 
                 return True
 
-        # simple check to see if it's a valid ICO file
+        # Simple check to see if it's a valid ICO file
         # from http://en.wikipedia.org/wiki/ICO_(file_format)
         elif target_format == FORMAT_ICO:
             with open(result_path, 'rb') as f:
-                data = f.read(6)
-                if len(data) != 6:
+                header = f.read(6)
+                if len(header) != 6:
                     return False
 
-                header = struct.unpack('<3H', data)
-                if header[:2] != (0, 1):
+                header_unpacked = struct.unpack('<3H', header)
+                if header_unpacked[:2] != (0, 1) or header_unpacked[2] <= 0:
                     return False
 
                 return True
@@ -191,7 +190,7 @@ class Converter(object):
         :param transparency: Whether to add transparency or not.
 
         :returns:
-            The path to the resized image.
+            Path to the resized image.
         """
 
         resized_file = tempfile.NamedTemporaryFile(
@@ -200,6 +199,7 @@ class Converter(object):
                     delete=False)
         resized_path = resized_file.name
 
+        # Adding transparency to make a square image
         if transparency:
             args_string = "%s %s -gravity center -background transparent " \
                             "-extent %dx%d %s" % (self.converttool,
@@ -207,6 +207,7 @@ class Converter(object):
                                         image_width,
                                         image_height,
                                         resized_path)
+        # Resizing square image to the closest supported size
         else:
             args_string = "%s %s -resize %dx%d %s" % (
                                         self.converttool,
@@ -223,8 +224,7 @@ class Converter(object):
             subprocess.check_output(args,
                                     stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError, e:
-            raise ConversionError('Failed to convert image to the next closest size: %s' % (
-                e.output))
+            raise ConversionError('Failed to resize image %s' % (e.output))
 
         return resized_path
 
@@ -234,7 +234,8 @@ class Converter(object):
                        image_width,
                        image_height,
                        target_format):
-        """Fix image size to the specifications of the target container icon format.
+        """Fix image size to the specifications of the target container icon 
+            format.
 
         :param image_dict: Dictionary of sizes and image path mappings.
         :param image_path: Path to the source icon.
@@ -243,12 +244,14 @@ class Converter(object):
         :param target_format: Target icon format.
 
         :returns:
-            Path to the fixed image, new width, new size or None if the would be fixed image already exists
+            ``Tuple`` consisting of fixed image, new width, new size or 
+            ``None`` if the would be fixed image already exists
         """
 
         image_path_orig = image_path
         if target_format == FORMAT_ICNS:
-            # remove the image, and possibly regenerate it
+            # Ensure the image is square,
+            # otherwise add transparency to smaller side
             if image_width != image_height:
                 logging.debug('Non square icon: %d:%d -> %d:%d' % (
                     image_width, 
@@ -260,20 +263,23 @@ class Converter(object):
 
                 # check if the corrected size doesn't already exist
                 if not (image_width, image_height) in image_dict:
-                    logging.debug('Resizing with transparency: %s' % (image_path,))
+                    logging.debug('Resizing with transparency: %s' % (
+                        image_path))
 
                     image_path = self.resize_image(image_path,
                                                    image_width,
                                                    image_height,
                                                    True)
 
-            # remove the image, and possibly regenerate it
+            # Ensure the image is of supported sizes,
+            # otherwise resize it.
             if image_width not in SUPPORTED_SIZES_ICNS:
                 # get the closest supported size
                 closest = min(enumerate(SUPPORTED_SIZES_ICNS),
                     key=lambda x: abs(x[1] - image_width))[1]
 
-                logging.debug('Non supported size, resizing: %d:%d -> %d:%d' % (
+                logging.debug('Non supported size: '
+                    '%d:%d -> %d:%d' % (
                     image_width,
                     image_height,
                     closest,
@@ -283,7 +289,8 @@ class Converter(object):
 
                 # the corrected size doesn't already exist
                 if not (image_width, image_height) in image_dict:
-                    logging.debug('Resizing without transparency: %s' % (image_path,))
+                    logging.debug('Resizing without transparency: %s' % (
+                        image_path))
 
                     image_path = self.resize_image(image_path,
                                                    image_width,
@@ -303,11 +310,11 @@ class Converter(object):
                                                    image_height,
                                                    False)
 
+        # Did we generate a new image?
         if image_path_orig == image_path:
             return None
         else:
             return (image_path, image_width, image_height)
-
 
     def convert_to_png32(self,
                          source_path,
@@ -348,7 +355,8 @@ class Converter(object):
 
         # Validate the input arguments.
         if target_format not in Converter.SUPPORTED_TARGET_FORMATS:
-            raise ConversionError('invalid target format identifier: %s' % (target_format))
+            raise ConversionError('invalid target format identifier: %s' % (
+                target_format))
 
         if len(image_list) == 0:
             raise ValueError('image input list cannot be empty')
@@ -388,10 +396,10 @@ class Converter(object):
                 image_location = image_location_png
 
             local_image_list.append(image_location)
-        
+
         # Validate the bit depth of each PNG file.
         image_list = []
-        
+
         for image_path in local_image_list:
             # Skip past the image if the bit depth is greater than or equal to 
             # 24 bits, which we're certain that png2icns handles well.
@@ -408,11 +416,11 @@ class Converter(object):
                 suffix = '.png', 
                 delete = False)
             deeper_filename = deeper_file.name
-            
+
             self.convert_to_png32(image_path, 
                                   deeper_filename)
             image_list.append(deeper_filename)
-        
+
         # Ensure that all image files have sizes compatible with the output
         # format.
         # If they don't, we do our best job of correcting the wrongly-sized icons
@@ -446,20 +454,20 @@ class Converter(object):
             else:
                 image_list.append(image_path)
 
-
         # Execute conversion command.
         logging.debug('Target path: %r' % (target_path))
         logging.debug('Image list: %r' % (image_list))
-            
+
         if target_format == FORMAT_ICNS:
             args = [self.png2icns, target_path] + image_list
         elif target_format == FORMAT_ICO:
             args = [self.converttool] + image_list + [target_path]
-        
+
         logging.debug('Conversion call arguments: %r' % (args))
         logging.debug('Conversion call: %s' % (
             ' '.join(['"%s"' % (a) if ' ' in a else a for a in args])))
-        
+
+        # Verify libicns' bogus errors
         try:
             subprocess.check_output(args, 
                                     stderr = subprocess.STDOUT)

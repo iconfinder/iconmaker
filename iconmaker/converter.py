@@ -75,6 +75,7 @@ class Converter(object):
         self.png2icns = '/usr/local/bin/png2icns'
         self.icns2png = '/usr/local/bin/icns2png'
         self.converttool = '/opt/local/bin/convert'
+        self.notices = []
 
         # check and/or find the correct file locations
         if not os.path.isfile(self.png2icns):
@@ -359,14 +360,18 @@ class Converter(object):
             if ((image_location.startswith("http:")) or
                 (image_location.startswith("https:"))):
 
-                # skip invalid/corrupt URLs
+                # Skip invalid/corrupt URLs
                 try:
                     image_location = self.fetch_image(image_location)
                 except requests.exceptions.HTTPError, e:
-                    logging.debug('Could not retrieve image: %s', str(e))
+                    err = 'Could not retrieve image: %s' % str(e)
+                    self.notices.append(err)
+                    logging.debug(err)
                     continue
                 except ImageError, e:
-                    logging.debug('Could not save image: %s', str(e))
+                    err = 'Could not save image: %s' % str(e)
+                    self.notices.append(err)
+                    logging.debug(err)
                     continue
 
             # Check the extension to see if we'll need to convert something

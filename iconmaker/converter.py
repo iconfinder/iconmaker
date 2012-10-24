@@ -29,7 +29,7 @@ def is_size_convertible_to_icon(size_width,
         ``True`` if the image can be converted to the given target icon format
         otherwise ``False``.
     """
-    
+
     # Sizes are constrainted by format.
     if target_format == FORMAT_ICO:
         # The dimensions of the icons must in the range of [1 ; 256].
@@ -42,11 +42,11 @@ def is_size_convertible_to_icon(size_width,
         # ICNS requires quadratic input images.
         if size_width != size_height:
             return False
-        
+
         # Apple's ICNS format supports only a subset of image sizes.
-        if not size_width in [16, 32, 48, 128, 256, 512, 1024]:
+        if not size_width in SUPPORTED_SIZES_ICNS:
             return False
-    
+
     # We should be good.
     return True
 
@@ -54,47 +54,59 @@ def is_size_convertible_to_icon(size_width,
 class Converter(object):
     """Convert a set of PNG/GIF icons to either ICO or ICNS format.
     """
-    
-    SUPPORTED_SOURCE_FORMATS = [FORMAT_GIF, 
+
+    SUPPORTED_SOURCE_FORMATS = [FORMAT_GIF,
                                 FORMAT_PNG]
     """Support source image formats.
     """
-    
-    
-    SUPPORTED_TARGET_FORMATS = [FORMAT_ICO, 
+
+    SUPPORTED_TARGET_FORMATS = [FORMAT_ICO,
                                 FORMAT_ICNS]
     """Supported target icon container formats.
+    """
+
+    PNG2ICNS = '/usr/local/bin/png2icns'
+    ICNS2PNG = '/usr/local/bin/icns2png'
+    CONVERTTOOL = '/opt/local/bin/convert'
+    """Cache image manipulation binary locations.
     """
 
     def __init__(self):
         """Initializer.
         """
 
-        Converter.SUPPORTED_SOURCE_FORMATS = [FORMAT_GIF, FORMAT_PNG]
-        Converter.SUPPORTED_TARGET_FORMATS = [FORMAT_ICO, FORMAT_ICNS]
-        self.png2icns = '/usr/local/bin/png2icns'
-        self.icns2png = '/usr/local/bin/icns2png'
-        self.converttool = '/opt/local/bin/convert'
+        self.png2icns = ''
+        self.icns2png = ''
+        self.converttool = ''
         self.notices = []
 
         # check and/or find the correct file locations
-        if not os.path.isfile(self.png2icns):
-            self.png2icns = which(os.path.basename(self.png2icns))
+        if not (os.path.isfile(Converter.PNG2ICNS)
+            or os.access(Converter.PNG2ICNS, os.X_OK)):
+            self.png2icns = which(os.path.basename(Converter.PNG2ICNS))
             if not self.png2icns:
                 raise Exception("Unable to locate png2icns binary: %s" %
-                    self.png2icns)
+                    Converter.PNG2ICNS)
+        else:
+            self.png2icns = Converter.PNG2ICNS
 
-        if not os.path.isfile(self.icns2png):
-            self.icns2png = which(os.path.basename(self.icns2png))
+        if not (os.path.isfile(Converter.ICNS2PNG)
+            or os.access(Converter.ICNS2PNG, os.X_OK)):
+            self.icns2png = which(os.path.basename(Converter.ICNS2PNG))
             if not self.icns2png:
                 raise Exception("Unable to locate icns2png binary: %s" %
-                    self.icns2png)
+                    Converter.ICNS2PNG)
+        else:
+            self.icns2png = Converter.ICNS2PNG
 
-        if not os.path.isfile(self.converttool):
-            self.converttool = which(os.path.basename(self.converttool))
+        if not (os.path.isfile(Converter.CONVERTTOOL)
+            or os.access(Converter.CONVERTTOOL, os.X_OK)):
+            self.converttool = which(os.path.basename(Converter.CONVERTTOOL))
             if not self.converttool:
                 raise Exception("Unable to locate image conversion tool: %s" %
-                    self.converttool)
+                    Converter.CONVERTTOOL)
+        else:
+            self.converttool = Converter.CONVERTTOOL
 
     def fetch_image(self, url):
         """Fetch the requested image and save it in a temporary file.

@@ -14,6 +14,8 @@ FORMAT_PNG = 'png'
 FORMAT_GIF = 'gif'
 FORMAT_ICO = 'ico'
 FORMAT_ICNS = 'icns'
+FORMAT_JPG = 'jpg'
+FORMAT_JPG2 = 'jpeg'
 SUPPORTED_SIZES_ICNS = [16, 32, 48, 128, 256, 512, 1024]
 
 
@@ -55,7 +57,9 @@ class Converter(object):
     """Convert a set of PNG/GIF icons to either ICO or ICNS format.
     """
 
-    SUPPORTED_SOURCE_FORMATS = [FORMAT_GIF,
+    SUPPORTED_SOURCE_FORMATS = [FORMAT_JPG,
+                                FORMAT_JPG2,
+                                FORMAT_GIF,
                                 FORMAT_PNG]
     """Support source image formats.
     """
@@ -399,8 +403,8 @@ class Converter(object):
             image_base, image_extension = os.path.splitext(image_location)
             image_extension = image_extension[1:]
 
-            if image_extension == FORMAT_GIF:
-                logging.debug('converting input GIF image to 32-bit PNG: %s' % (
+            if image_extension in [FORMAT_GIF, FORMAT_JPG, FORMAT_JPG2]:
+                logging.debug('converting input GIF/JPG image to 32-bit PNG: %s' % (
                     image_location))
                 image_location_png = "%s.%s" % (image_base, FORMAT_PNG)
                 self.convert_to_png32(image_location, 

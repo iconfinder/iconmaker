@@ -125,7 +125,11 @@ class Converter(object):
         response.raise_for_status(allow_redirects = False)
 
         # Save the image.
-        im = Image.open(StringIO(response.content))
+        try:
+            im = Image.open(StringIO(response.content))
+        except IOError, e:
+            raise ImageError('Error opening image: %s %s' % (url, str(e)))
+
         image_format = im.format.lower()
         if image_format not in Converter.SUPPORTED_SOURCE_FORMATS:
             raise ImageError('The source file is not of a supported format.'
@@ -143,8 +147,8 @@ class Converter(object):
 
         try:
             im.save(saved_filename)
-        except:
-            raise ImageError('Error saving image: %s' % (url))
+        except IOError, e:
+            raise ImageError('Error saving image: %s %s' % (url, str(e)))
 
         return saved_filename
 

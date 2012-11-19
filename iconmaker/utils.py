@@ -81,6 +81,7 @@ def image_mode_to_bit_depth(mode):
         return {
             '1': 1, 
             'L': 8, 
+            'LA': 8, 
             'P': 8, 
             'RGB': 24, 
             'RGBA': 32, 

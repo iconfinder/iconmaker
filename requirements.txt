@@ -1,4 +1,4 @@
 nose
 mysql-connector-repackaged
-PIL>=1.1.7
-requests>=0.14.1
+pillow
+requests==0.14.1

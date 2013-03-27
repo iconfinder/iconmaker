@@ -16,7 +16,7 @@ tests_require = [
 ]
 
 install_requires = [
-    'PIL>=1.1.7', 
+#    'PIL>=1.1.7', 
     'requests>=0.14.1', 
 ]
 

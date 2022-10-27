@@ -1,13 +1,13 @@
 import subprocess, os, tempfile, requests, struct
 
 try:
-    from cStringIO import StringIO
+    from io import StringIO
 except:
-    from StringIO import StringIO
+    from io import StringIO
 
-from utils import check_and_get_image_sizes, which, image_mode_to_bit_depth
-from logger import logging
-from exceptions import ConversionError, ImageError
+from .utils import check_and_get_image_sizes, which, image_mode_to_bit_depth
+from .logger import logging
+from .exceptions import ConversionError, ImageError
 from PIL import Image
 
 FORMAT_PNG = 'png'
@@ -452,7 +452,7 @@ class Converter(object):
 
         image_list = []
         resized_images = {}
-        for (image_size, image_path) in image_dict.iteritems():
+        for (image_size, image_path) in image_dict.items():
             (image_width, image_height) = image_size
 
             if not is_size_convertible_to_icon(image_width,

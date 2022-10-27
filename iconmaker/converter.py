@@ -5,9 +5,9 @@ try:
 except:
     from StringIO import StringIO
 
-from utils import check_and_get_image_sizes, which, image_mode_to_bit_depth
-from logger import logging
-from exceptions import ConversionError, ImageError
+from .utils import check_and_get_image_sizes, which, image_mode_to_bit_depth
+from .logger import logging
+from .exceptions import ConversionError, ImageError
 from PIL import Image
 
 FORMAT_PNG = 'png'

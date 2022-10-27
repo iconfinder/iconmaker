@@ -1,6 +1,6 @@
 import os
 from PIL import Image
-from exceptions import ImageError
+from .exceptions import ImageError
 
 
 def check_and_get_image_sizes(image_list):

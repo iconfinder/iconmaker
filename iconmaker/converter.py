@@ -127,7 +127,7 @@ class Converter(object):
         # Save the image.
         try:
             im = Image.open(StringIO(response.content))
-        except IOError, e:
+        except IOError as e:
             raise ImageError('Error opening image: %s %s' % (url, str(e)))
 
         image_format = im.format.lower()
@@ -147,7 +147,7 @@ class Converter(object):
 
         try:
             im.save(saved_filename)
-        except IOError, e:
+        except IOError as e:
             raise ImageError('Error saving image: %s %s' % (url, str(e)))
 
         return saved_filename
@@ -243,7 +243,7 @@ class Converter(object):
         try:
             subprocess.check_output(args,
                                     stderr = subprocess.STDOUT)
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             raise ConversionError('Failed to resize image %s' % (e.output))
 
         return resized_path
@@ -355,7 +355,7 @@ class Converter(object):
                     source_path,
                     'png32:%s' % (target_path)
                 ], stderr = subprocess.STDOUT)
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             raise ConversionError('Failed to convert input file to 32-bit PNG: %s' % (
                 e.output))
 
@@ -391,12 +391,12 @@ class Converter(object):
                 # Skip invalid/corrupt URLs
                 try:
                     image_location = self.fetch_image(image_location)
-                except requests.exceptions.HTTPError, e:
+                except requests.exceptions.HTTPError as e:
                     err = 'Could not retrieve image: %s' % str(e)
                     self.notices.append(err)
                     logging.debug(err)
                     continue
-                except ImageError, e:
+                except ImageError as e:
                     err = 'Could not save image: %s' % str(e)
                     self.notices.append(err)
                     logging.debug(err)
@@ -491,7 +491,7 @@ class Converter(object):
         try:
             subprocess.check_output(args, 
                                     stderr = subprocess.STDOUT)
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             if not self.verify_generated_icon(target_format, target_path):
                 raise ConversionError('Failed to create container icon: %s: %s' % (
                     target_format, e.output))
